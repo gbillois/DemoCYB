@@ -1,0 +1,569 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cyber Brick Breaker</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --cyan: #00f5ff;
+      --pink: #ff2bd6;
+      --lime: #b6ff00;
+      --violet: #7c3cff;
+      --dark: #070812;
+      --panel: rgba(10, 20, 38, 0.78);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      overflow: hidden;
+      display: grid;
+      place-items: center;
+      font-family: "Orbitron", "Rajdhani", "Segoe UI", sans-serif;
+      color: #e8fbff;
+      background:
+        radial-gradient(circle at 20% 20%, rgba(255, 43, 214, 0.24), transparent 28rem),
+        radial-gradient(circle at 80% 15%, rgba(0, 245, 255, 0.22), transparent 26rem),
+        linear-gradient(145deg, #050610 0%, #0c1024 47%, #06030d 100%);
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(0, 245, 255, 0.08) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 43, 214, 0.07) 1px, transparent 1px);
+      background-size: 42px 42px;
+      mask-image: linear-gradient(to bottom, transparent, black 12%, black 88%, transparent);
+      animation: drift 12s linear infinite;
+    }
+
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background: repeating-linear-gradient(
+        to bottom,
+        rgba(255,255,255,0.035) 0,
+        rgba(255,255,255,0.035) 1px,
+        transparent 1px,
+        transparent 5px
+      );
+      mix-blend-mode: overlay;
+      opacity: 0.38;
+    }
+
+    @keyframes drift {
+      from { transform: translateY(0); }
+      to { transform: translateY(42px); }
+    }
+
+    .shell {
+      width: min(96vw, 1040px);
+      padding: 22px;
+      border: 1px solid rgba(0, 245, 255, 0.36);
+      border-radius: 26px;
+      background: linear-gradient(180deg, rgba(11, 18, 38, 0.92), rgba(6, 8, 20, 0.86));
+      box-shadow:
+        0 0 30px rgba(0, 245, 255, 0.18),
+        inset 0 0 32px rgba(124, 60, 255, 0.12);
+      position: relative;
+      isolation: isolate;
+    }
+
+    .shell::before {
+      content: "";
+      position: absolute;
+      inset: -2px;
+      border-radius: 28px;
+      background: linear-gradient(120deg, var(--cyan), transparent 28%, var(--pink), transparent 72%, var(--lime));
+      filter: blur(14px);
+      opacity: 0.36;
+      z-index: -1;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: center;
+      margin-bottom: 16px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.65rem, 4vw, 3.1rem);
+      line-height: 1;
+      text-shadow: 0 0 16px rgba(0, 245, 255, 0.85), 0 0 28px rgba(255, 43, 214, 0.55);
+    }
+
+    .hud {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 10px;
+      font-size: 0.82rem;
+    }
+
+    .chip {
+      padding: 10px 14px;
+      border: 1px solid rgba(0, 245, 255, 0.42);
+      background: var(--panel);
+      border-radius: 999px;
+      box-shadow: inset 0 0 16px rgba(0, 245, 255, 0.1);
+      white-space: nowrap;
+    }
+
+    .chip strong { color: var(--lime); }
+
+    .arena {
+      position: relative;
+      border: 1px solid rgba(255, 43, 214, 0.4);
+      border-radius: 18px;
+      overflow: hidden;
+      background: #050712;
+      box-shadow: inset 0 0 40px rgba(0, 245, 255, 0.12), 0 0 22px rgba(255, 43, 214, 0.16);
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      max-height: 72vh;
+      cursor: none;
+      background:
+        radial-gradient(circle at 50% 110%, rgba(0, 245, 255, 0.18), transparent 45%),
+        linear-gradient(rgba(0,245,255,0.08) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,43,214,0.08) 1px, transparent 1px),
+        #050712;
+      background-size: auto, 36px 36px, 36px 36px, auto;
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      text-align: center;
+      background: radial-gradient(circle, rgba(3, 8, 18, 0.48), rgba(3, 8, 18, 0.86));
+      transition: opacity 180ms ease, visibility 180ms ease;
+    }
+
+    .overlay.hidden {
+      opacity: 0;
+      visibility: hidden;
+    }
+
+    .card {
+      max-width: 620px;
+      padding: 26px;
+      border-radius: 22px;
+      border: 1px solid rgba(0, 245, 255, 0.5);
+      background: rgba(5, 8, 20, 0.88);
+      box-shadow: 0 0 34px rgba(0, 245, 255, 0.22), inset 0 0 26px rgba(255, 43, 214, 0.12);
+    }
+
+    .card h2 {
+      margin: 0 0 10px;
+      font-size: clamp(1.4rem, 4vw, 2.35rem);
+      color: var(--cyan);
+      text-shadow: 0 0 18px currentColor;
+      text-transform: uppercase;
+    }
+
+    .card p {
+      margin: 10px 0;
+      line-height: 1.55;
+      color: #bdd9e5;
+    }
+
+    button {
+      margin-top: 16px;
+      border: 0;
+      border-radius: 999px;
+      padding: 13px 24px;
+      font: 800 0.95rem/1 "Segoe UI", sans-serif;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: #06101a;
+      background: linear-gradient(90deg, var(--cyan), var(--lime));
+      box-shadow: 0 0 22px rgba(0, 245, 255, 0.45);
+      cursor: pointer;
+    }
+
+    button:hover { filter: brightness(1.12); }
+
+    .controls {
+      margin: 14px 4px 0;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      color: #8eb8c8;
+      font-size: 0.82rem;
+    }
+
+    kbd {
+      border: 1px solid rgba(0, 245, 255, 0.45);
+      border-bottom-width: 3px;
+      border-radius: 6px;
+      padding: 2px 7px;
+      color: #eaffff;
+      background: rgba(0, 245, 255, 0.08);
+    }
+
+    @media (max-width: 720px) {
+      body { overflow: auto; padding: 12px; }
+      .shell { padding: 14px; }
+      header { align-items: flex-start; flex-direction: column; }
+      .hud { justify-content: flex-start; }
+      .chip { padding: 8px 10px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell" aria-label="Jeu casse-brique cyberpunk">
+    <header>
+      <h1>Cyber Breakout</h1>
+      <section class="hud" aria-label="Statistiques">
+        <div class="chip">Score <strong id="score">0</strong></div>
+        <div class="chip">Vies <strong id="lives">3</strong></div>
+        <div class="chip">Niveau <strong id="level">1</strong></div>
+      </section>
+    </header>
+
+    <section class="arena">
+      <canvas id="game" width="960" height="540" aria-label="Zone de jeu"></canvas>
+      <div class="overlay" id="overlay">
+        <div class="card">
+          <h2 id="overlayTitle">Connexion au réseau</h2>
+          <p id="overlayText">Détruis tous les pare-feux néon avec ta balle plasma. Déplace la raquette au clavier, à la souris ou au toucher.</p>
+          <button id="startButton">Lancer la partie</button>
+        </div>
+      </div>
+    </section>
+
+    <div class="controls">
+      <span><kbd>←</kbd> <kbd>→</kbd> ou souris/toucher pour bouger</span>
+      <span><kbd>Espace</kbd> pause / reprise</span>
+    </div>
+  </main>
+
+  <script>
+    const canvas = document.querySelector('#game');
+    const ctx = canvas.getContext('2d');
+    const scoreEl = document.querySelector('#score');
+    const livesEl = document.querySelector('#lives');
+    const levelEl = document.querySelector('#level');
+    const overlay = document.querySelector('#overlay');
+    const overlayTitle = document.querySelector('#overlayTitle');
+    const overlayText = document.querySelector('#overlayText');
+    const startButton = document.querySelector('#startButton');
+
+    const state = {
+      score: 0,
+      lives: 3,
+      level: 1,
+      running: false,
+      paused: false,
+      keys: new Set(),
+      particles: []
+    };
+
+    const paddle = { w: 145, h: 16, x: 407, y: 500, speed: 9 };
+    const ball = { x: 480, y: 470, r: 8, vx: 5.4, vy: -5.8, trail: [] };
+    let bricks = [];
+
+    function syncHud() {
+      scoreEl.textContent = state.score;
+      livesEl.textContent = state.lives;
+      levelEl.textContent = state.level;
+    }
+
+    function resetBall() {
+      paddle.x = (canvas.width - paddle.w) / 2;
+      ball.x = canvas.width / 2;
+      ball.y = paddle.y - 24;
+      const speed = 5.5 + state.level * 0.45;
+      ball.vx = (Math.random() > 0.5 ? 1 : -1) * speed;
+      ball.vy = -speed;
+      ball.trail = [];
+    }
+
+    function buildBricks() {
+      bricks = [];
+      const rows = Math.min(5 + state.level, 8);
+      const cols = 10;
+      const gap = 10;
+      const top = 78;
+      const brickW = (canvas.width - 92 - gap * (cols - 1)) / cols;
+      const colors = ['#00f5ff', '#ff2bd6', '#b6ff00', '#7c3cff'];
+
+      for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+          bricks.push({
+            x: 46 + col * (brickW + gap),
+            y: top + row * 28,
+            w: brickW,
+            h: 18,
+            hp: row % 3 === 0 && state.level > 1 ? 2 : 1,
+            color: colors[(row + col) % colors.length]
+          });
+        }
+      }
+    }
+
+    function showOverlay(title, text, button = 'Lancer la partie') {
+      overlayTitle.textContent = title;
+      overlayText.textContent = text;
+      startButton.textContent = button;
+      overlay.classList.remove('hidden');
+    }
+
+    function hideOverlay() {
+      overlay.classList.add('hidden');
+    }
+
+    function startGame(reset = true) {
+      if (reset) {
+        state.score = 0;
+        state.lives = 3;
+        state.level = 1;
+        state.particles = [];
+        buildBricks();
+      }
+      resetBall();
+      state.running = true;
+      state.paused = false;
+      syncHud();
+      hideOverlay();
+      requestAnimationFrame(loop);
+    }
+
+    function nextLevel() {
+      state.level += 1;
+      buildBricks();
+      resetBall();
+      syncHud();
+      showOverlay('Niveau franchi', 'Le réseau se renforce : les briques deviennent plus nombreuses et plus solides.', 'Continuer');
+      state.running = false;
+    }
+
+    function createBurst(x, y, color, amount = 16) {
+      for (let i = 0; i < amount; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 1 + Math.random() * 4;
+        state.particles.push({
+          x,
+          y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          life: 36 + Math.random() * 20,
+          color
+        });
+      }
+    }
+
+    function movePaddle() {
+      if (state.keys.has('ArrowLeft') || state.keys.has('KeyA')) paddle.x -= paddle.speed;
+      if (state.keys.has('ArrowRight') || state.keys.has('KeyD')) paddle.x += paddle.speed;
+      paddle.x = Math.max(10, Math.min(canvas.width - paddle.w - 10, paddle.x));
+    }
+
+    function update() {
+      movePaddle();
+
+      ball.trail.unshift({ x: ball.x, y: ball.y });
+      ball.trail = ball.trail.slice(0, 12);
+      ball.x += ball.vx;
+      ball.y += ball.vy;
+
+      if (ball.x - ball.r < 0 || ball.x + ball.r > canvas.width) ball.vx *= -1;
+      if (ball.y - ball.r < 0) ball.vy *= -1;
+
+      const hitPaddle = ball.y + ball.r >= paddle.y &&
+        ball.y - ball.r <= paddle.y + paddle.h &&
+        ball.x >= paddle.x &&
+        ball.x <= paddle.x + paddle.w &&
+        ball.vy > 0;
+
+      if (hitPaddle) {
+        const impact = (ball.x - (paddle.x + paddle.w / 2)) / (paddle.w / 2);
+        ball.vx = impact * (6.8 + state.level * 0.25);
+        ball.vy = -Math.abs(ball.vy) - 0.12;
+        createBurst(ball.x, paddle.y, '#00f5ff', 8);
+      }
+
+      for (const brick of bricks) {
+        if (brick.hp <= 0) continue;
+        const collides = ball.x + ball.r > brick.x && ball.x - ball.r < brick.x + brick.w &&
+          ball.y + ball.r > brick.y && ball.y - ball.r < brick.y + brick.h;
+        if (collides) {
+          brick.hp -= 1;
+          ball.vy *= -1;
+          state.score += 10 * state.level;
+          createBurst(ball.x, ball.y, brick.color, 18);
+          syncHud();
+          break;
+        }
+      }
+
+      bricks = bricks.filter(brick => brick.hp > 0);
+      if (bricks.length === 0) nextLevel();
+
+      if (ball.y - ball.r > canvas.height) {
+        state.lives -= 1;
+        syncHud();
+        createBurst(ball.x, canvas.height - 20, '#ff2bd6', 28);
+        if (state.lives <= 0) {
+          state.running = false;
+          showOverlay('Système compromis', `Score final : ${state.score}. Relance une attaque pour reprendre le réseau.`, 'Rejouer');
+        } else {
+          resetBall();
+        }
+      }
+
+      state.particles.forEach(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.03;
+        p.life -= 1;
+      });
+      state.particles = state.particles.filter(p => p.life > 0);
+    }
+
+    function drawGlowRect(x, y, w, h, color, blur = 14) {
+      ctx.save();
+      ctx.shadowBlur = blur;
+      ctx.shadowColor = color;
+      ctx.fillStyle = color;
+      ctx.fillRect(x, y, w, h);
+      ctx.restore();
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      ctx.strokeStyle = 'rgba(0, 245, 255, 0.09)';
+      ctx.lineWidth = 1;
+      for (let x = 0; x < canvas.width; x += 36) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+      }
+      for (let y = 0; y < canvas.height; y += 36) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+      }
+
+      bricks.forEach(brick => {
+        drawGlowRect(brick.x, brick.y, brick.w, brick.h, brick.color, 12);
+        ctx.fillStyle = brick.hp > 1 ? 'rgba(255,255,255,0.42)' : 'rgba(255,255,255,0.18)';
+        ctx.fillRect(brick.x + 4, brick.y + 3, brick.w - 8, 3);
+      });
+
+      const paddleGradient = ctx.createLinearGradient(paddle.x, paddle.y, paddle.x + paddle.w, paddle.y);
+      paddleGradient.addColorStop(0, '#ff2bd6');
+      paddleGradient.addColorStop(0.5, '#00f5ff');
+      paddleGradient.addColorStop(1, '#b6ff00');
+      ctx.save();
+      ctx.shadowBlur = 22;
+      ctx.shadowColor = '#00f5ff';
+      ctx.fillStyle = paddleGradient;
+      ctx.fillRect(paddle.x, paddle.y, paddle.w, paddle.h);
+      ctx.fillStyle = 'rgba(255,255,255,0.65)';
+      ctx.fillRect(paddle.x + 12, paddle.y + 3, paddle.w - 24, 3);
+      ctx.restore();
+
+      ball.trail.forEach((point, index) => {
+        ctx.beginPath();
+        ctx.globalAlpha = Math.max(0, 0.45 - index * 0.035);
+        ctx.fillStyle = '#00f5ff';
+        ctx.arc(point.x, point.y, ball.r + index * 0.8, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      ctx.globalAlpha = 1;
+
+      ctx.save();
+      ctx.shadowBlur = 24;
+      ctx.shadowColor = '#b6ff00';
+      ctx.fillStyle = '#eaffff';
+      ctx.beginPath();
+      ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      state.particles.forEach(p => {
+        ctx.save();
+        ctx.globalAlpha = Math.min(1, p.life / 30);
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = p.color;
+        ctx.fillStyle = p.color;
+        ctx.fillRect(p.x, p.y, 3, 3);
+        ctx.restore();
+      });
+    }
+
+    function loop() {
+      if (!state.running || state.paused) return;
+      update();
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    startButton.addEventListener('click', () => {
+      if (state.paused) {
+        state.paused = false;
+        hideOverlay();
+        requestAnimationFrame(loop);
+        return;
+      }
+      startGame(startButton.textContent !== 'Continuer');
+    });
+
+    document.addEventListener('keydown', event => {
+      if (['ArrowLeft', 'ArrowRight', 'Space'].includes(event.code)) event.preventDefault();
+      if (event.code === 'Space' && state.running) {
+        state.paused = !state.paused;
+        if (state.paused) showOverlay('Pause activée', 'Le flux est gelé. Appuie sur Espace ou sur le bouton pour reprendre.', 'Reprendre');
+        else {
+          hideOverlay();
+          requestAnimationFrame(loop);
+        }
+      }
+      state.keys.add(event.code);
+    });
+
+    document.addEventListener('keyup', event => state.keys.delete(event.code));
+
+    canvas.addEventListener('pointermove', event => {
+      const rect = canvas.getBoundingClientRect();
+      const ratio = canvas.width / rect.width;
+      paddle.x = (event.clientX - rect.left) * ratio - paddle.w / 2;
+      paddle.x = Math.max(10, Math.min(canvas.width - paddle.w - 10, paddle.x));
+    });
+
+    canvas.addEventListener('pointerdown', () => {
+      if (!state.running) startGame(startButton.textContent !== 'Continuer');
+    });
+
+    buildBricks();
+    resetBall();
+    syncHud();
+    draw();
+  </script>
+</body>
+</html>
