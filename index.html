@@ -239,6 +239,7 @@
         <div class="chip">Score <strong id="score">0</strong></div>
         <div class="chip">Vies <strong id="lives">3</strong></div>
         <div class="chip">Niveau <strong id="level">1</strong></div>
+        <div class="chip">Bonus <strong id="bonus">Aucun</strong></div>
       </section>
     </header>
 
@@ -256,6 +257,7 @@
     <div class="controls">
       <span><kbd>←</kbd> <kbd>→</kbd> ou souris/toucher pour bouger</span>
       <span><kbd>Espace</kbd> pause / reprise</span>
+      <span>Attrape les bonus néon libérés par certaines briques</span>
     </div>
   </main>
 
@@ -265,6 +267,7 @@
     const scoreEl = document.querySelector('#score');
     const livesEl = document.querySelector('#lives');
     const levelEl = document.querySelector('#level');
+    const bonusEl = document.querySelector('#bonus');
     const overlay = document.querySelector('#overlay');
     const overlayTitle = document.querySelector('#overlayTitle');
     const overlayText = document.querySelector('#overlayText');
@@ -277,17 +280,30 @@
       running: false,
       paused: false,
       keys: new Set(),
-      particles: []
+      particles: [],
+      powerUps: [],
+      activeEffects: []
     };
 
-    const paddle = { w: 145, h: 16, x: 407, y: 500, speed: 9 };
-    const ball = { x: 480, y: 470, r: 8, vx: 5.4, vy: -5.8, trail: [] };
+    const basePaddle = { w: 145, h: 16, speed: 9 };
+    const baseBall = { r: 8 };
+    const paddle = { w: basePaddle.w, h: 16, x: 407, y: 500, speed: basePaddle.speed };
+    const ball = { x: 480, y: 470, r: baseBall.r, vx: 5.4, vy: -5.8, trail: [] };
     let bricks = [];
+
+    const powerUpTypes = [
+      { type: 'wide', label: 'Raquette XL', color: '#00f5ff', symbol: '↔', duration: 620 },
+      { type: 'slow', label: 'Ralenti plasma', color: '#b6ff00', symbol: '◌', duration: 520 },
+      { type: 'shield', label: 'Bouclier', color: '#ff2bd6', symbol: '▰', duration: 700 }
+    ];
 
     function syncHud() {
       scoreEl.textContent = state.score;
       livesEl.textContent = state.lives;
       levelEl.textContent = state.level;
+      bonusEl.textContent = state.activeEffects.length
+        ? state.activeEffects.map(effect => effect.label).join(' + ')
+        : 'Aucun';
     }
 
     function resetBall() {
@@ -340,6 +356,11 @@
         state.lives = 3;
         state.level = 1;
         state.particles = [];
+        state.powerUps = [];
+        state.activeEffects = [];
+        paddle.w = basePaddle.w;
+        paddle.speed = basePaddle.speed;
+        ball.r = baseBall.r;
         buildBricks();
       }
       resetBall();
@@ -354,8 +375,13 @@
       state.level += 1;
       buildBricks();
       resetBall();
+      state.powerUps = [];
+      state.activeEffects = [];
+      paddle.w = basePaddle.w;
+      paddle.speed = basePaddle.speed;
+      ball.r = baseBall.r;
       syncHud();
-      showOverlay('Niveau franchi', 'Le réseau se renforce : les briques deviennent plus nombreuses et plus solides.', 'Continuer');
+      showOverlay('Niveau franchi', 'Le réseau se renforce : les briques deviennent plus nombreuses, plus solides et plus généreuses en bonus.', 'Continuer');
       state.running = false;
     }
 
@@ -374,6 +400,76 @@
       }
     }
 
+    function maybeDropPowerUp(brick) {
+      const dropChance = Math.min(0.18 + state.level * 0.025, 0.34);
+      if (Math.random() > dropChance) return;
+      const bonus = powerUpTypes[Math.floor(Math.random() * powerUpTypes.length)];
+      state.powerUps.push({
+        ...bonus,
+        x: brick.x + brick.w / 2,
+        y: brick.y + brick.h / 2,
+        r: 13,
+        vy: 2.15 + state.level * 0.12,
+        spin: 0,
+        pulse: 0
+      });
+      createBurst(brick.x + brick.w / 2, brick.y + brick.h / 2, bonus.color, 24);
+    }
+
+    function activatePowerUp(powerUp) {
+      createBurst(powerUp.x, powerUp.y, powerUp.color, 34);
+      state.score += 35 * state.level;
+      const existing = state.activeEffects.find(effect => effect.type === powerUp.type);
+      if (existing) existing.time = powerUp.duration;
+      else state.activeEffects.push({
+        type: powerUp.type,
+        label: powerUp.label,
+        color: powerUp.color,
+        time: powerUp.duration
+      });
+
+      if (powerUp.type === 'wide') paddle.w = Math.min(basePaddle.w * 1.55, 225);
+      if (powerUp.type === 'shield') ball.r = baseBall.r + 3;
+      syncHud();
+    }
+
+    function updateActiveEffects() {
+      state.activeEffects.forEach(effect => { effect.time -= 1; });
+      const stillActive = state.activeEffects.filter(effect => effect.time > 0);
+      const expired = state.activeEffects.filter(effect => effect.time <= 0);
+      state.activeEffects = stillActive;
+
+      if (expired.some(effect => effect.type === 'wide') && !stillActive.some(effect => effect.type === 'wide')) {
+        paddle.w = basePaddle.w;
+        paddle.x = Math.min(paddle.x, canvas.width - paddle.w - 10);
+      }
+      if (expired.some(effect => effect.type === 'shield') && !stillActive.some(effect => effect.type === 'shield')) {
+        ball.r = baseBall.r;
+      }
+      if (expired.length) syncHud();
+    }
+
+    function updatePowerUps() {
+      state.powerUps.forEach(powerUp => {
+        powerUp.y += powerUp.vy;
+        powerUp.spin += 0.08;
+        powerUp.pulse += 0.16;
+      });
+
+      state.powerUps = state.powerUps.filter(powerUp => {
+        const caught = powerUp.y + powerUp.r >= paddle.y &&
+          powerUp.y - powerUp.r <= paddle.y + paddle.h &&
+          powerUp.x >= paddle.x &&
+          powerUp.x <= paddle.x + paddle.w;
+
+        if (caught) {
+          activatePowerUp(powerUp);
+          return false;
+        }
+        return powerUp.y - powerUp.r <= canvas.height;
+      });
+    }
+
     function movePaddle() {
       if (state.keys.has('ArrowLeft') || state.keys.has('KeyA')) paddle.x -= paddle.speed;
       if (state.keys.has('ArrowRight') || state.keys.has('KeyD')) paddle.x += paddle.speed;
@@ -383,10 +479,14 @@
     function update() {
       movePaddle();
 
+      updateActiveEffects();
+      updatePowerUps();
+
       ball.trail.unshift({ x: ball.x, y: ball.y });
       ball.trail = ball.trail.slice(0, 12);
-      ball.x += ball.vx;
-      ball.y += ball.vy;
+      const speedScale = state.activeEffects.some(effect => effect.type === 'slow') ? 0.78 : 1;
+      ball.x += ball.vx * speedScale;
+      ball.y += ball.vy * speedScale;
 
       if (ball.x - ball.r < 0 || ball.x + ball.r > canvas.width) ball.vx *= -1;
       if (ball.y - ball.r < 0) ball.vy *= -1;
@@ -413,6 +513,7 @@
           ball.vy *= -1;
           state.score += 10 * state.level;
           createBurst(ball.x, ball.y, brick.color, 18);
+          if (brick.hp <= 0) maybeDropPowerUp(brick);
           syncHud();
           break;
         }
@@ -427,6 +528,10 @@
         createBurst(ball.x, canvas.height - 20, '#ff2bd6', 28);
         if (state.lives <= 0) {
           state.running = false;
+          state.powerUps = [];
+          state.activeEffects = [];
+          paddle.w = basePaddle.w;
+          ball.r = baseBall.r;
           showOverlay('Système compromis', `Score final : ${state.score}. Relance une attaque pour reprendre le réseau.`, 'Rejouer');
         } else {
           resetBall();
@@ -475,13 +580,37 @@
         ctx.fillRect(brick.x + 4, brick.y + 3, brick.w - 8, 3);
       });
 
+      state.powerUps.forEach(powerUp => {
+        const glow = 9 + Math.sin(powerUp.pulse) * 3;
+        ctx.save();
+        ctx.translate(powerUp.x, powerUp.y);
+        ctx.rotate(powerUp.spin);
+        ctx.shadowBlur = 24;
+        ctx.shadowColor = powerUp.color;
+        ctx.strokeStyle = powerUp.color;
+        ctx.lineWidth = 3;
+        ctx.fillStyle = 'rgba(5, 8, 20, 0.72)';
+        ctx.beginPath();
+        ctx.arc(0, 0, powerUp.r + glow * 0.12, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.strokeRect(-8, -8, 16, 16);
+        ctx.rotate(-powerUp.spin);
+        ctx.fillStyle = '#eaffff';
+        ctx.font = 'bold 16px Segoe UI';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(powerUp.symbol, 0, 0);
+        ctx.restore();
+      });
+
       const paddleGradient = ctx.createLinearGradient(paddle.x, paddle.y, paddle.x + paddle.w, paddle.y);
       paddleGradient.addColorStop(0, '#ff2bd6');
       paddleGradient.addColorStop(0.5, '#00f5ff');
       paddleGradient.addColorStop(1, '#b6ff00');
       ctx.save();
-      ctx.shadowBlur = 22;
-      ctx.shadowColor = '#00f5ff';
+      ctx.shadowBlur = state.activeEffects.some(effect => effect.type === 'wide') ? 34 : 22;
+      ctx.shadowColor = state.activeEffects.some(effect => effect.type === 'wide') ? '#b6ff00' : '#00f5ff';
       ctx.fillStyle = paddleGradient;
       ctx.fillRect(paddle.x, paddle.y, paddle.w, paddle.h);
       ctx.fillStyle = 'rgba(255,255,255,0.65)';
@@ -498,8 +627,10 @@
       ctx.globalAlpha = 1;
 
       ctx.save();
-      ctx.shadowBlur = 24;
-      ctx.shadowColor = '#b6ff00';
+      ctx.shadowBlur = state.activeEffects.some(effect => effect.type === 'shield') ? 34 : 24;
+      ctx.shadowColor = state.activeEffects.some(effect => effect.type === 'shield')
+        ? '#ff2bd6'
+        : state.activeEffects.some(effect => effect.type === 'slow') ? '#00f5ff' : '#b6ff00';
       ctx.fillStyle = '#eaffff';
       ctx.beginPath();
       ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
