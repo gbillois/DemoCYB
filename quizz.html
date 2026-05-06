@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quiz Cybersécurité</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0d1117;
+      color: #e6edf3;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 720px;
+    }
+
+    /* ── Header ── */
+    .header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .header .shield {
+      font-size: 56px;
+      display: block;
+      margin-bottom: 12px;
+      filter: drop-shadow(0 0 16px #1f6feb88);
+    }
+
+    .header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #58a6ff, #3fb950);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .header p {
+      color: #8b949e;
+      margin-top: 6px;
+      font-size: 0.95rem;
+    }
+
+    /* ── Progress ── */
+    .progress-bar-wrap {
+      background: #21262d;
+      border-radius: 999px;
+      height: 8px;
+      margin-bottom: 8px;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #1f6feb, #3fb950);
+      border-radius: 999px;
+      transition: width 0.4s ease;
+      width: 0%;
+    }
+
+    .progress-label {
+      text-align: right;
+      font-size: 0.8rem;
+      color: #8b949e;
+      margin-bottom: 20px;
+    }
+
+    /* ── Card ── */
+    .card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 16px;
+      padding: 32px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+
+    .question-num {
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #58a6ff;
+      margin-bottom: 10px;
+    }
+
+    .question-text {
+      font-size: 1.15rem;
+      font-weight: 600;
+      line-height: 1.55;
+      margin-bottom: 24px;
+      color: #f0f6fc;
+    }
+
+    /* ── Options ── */
+    .options {
+      display: grid;
+      gap: 10px;
+    }
+
+    .option-btn {
+      background: #21262d;
+      border: 1.5px solid #30363d;
+      border-radius: 10px;
+      color: #e6edf3;
+      cursor: pointer;
+      font-size: 0.95rem;
+      padding: 14px 18px;
+      text-align: left;
+      transition: border-color 0.15s, background 0.15s, transform 0.1s;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .option-btn:hover:not(:disabled) {
+      border-color: #58a6ff;
+      background: #1c2733;
+      transform: translateX(4px);
+    }
+
+    .option-letter {
+      font-weight: 700;
+      font-size: 0.8rem;
+      background: #30363d;
+      color: #8b949e;
+      border-radius: 6px;
+      width: 26px;
+      height: 26px;
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .option-btn.correct {
+      border-color: #3fb950;
+      background: #0d2b1a;
+    }
+
+    .option-btn.correct .option-letter {
+      background: #3fb950;
+      color: #fff;
+    }
+
+    .option-btn.wrong {
+      border-color: #f85149;
+      background: #2d1212;
+    }
+
+    .option-btn.wrong .option-letter {
+      background: #f85149;
+      color: #fff;
+    }
+
+    .option-btn:disabled { cursor: default; }
+
+    /* ── Feedback ── */
+    .feedback {
+      margin-top: 18px;
+      padding: 14px 16px;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      line-height: 1.5;
+      display: none;
+    }
+
+    .feedback.show { display: block; }
+
+    .feedback.good {
+      background: #0d2b1a;
+      border: 1px solid #3fb950;
+      color: #56d364;
+    }
+
+    .feedback.bad {
+      background: #2d1212;
+      border: 1px solid #f85149;
+      color: #ff7b72;
+    }
+
+    /* ── Next button ── */
+    .btn-next {
+      margin-top: 24px;
+      background: linear-gradient(135deg, #1f6feb, #388bfd);
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: 600;
+      padding: 14px 28px;
+      width: 100%;
+      transition: opacity 0.2s, transform 0.1s;
+      display: none;
+    }
+
+    .btn-next:hover { opacity: 0.88; transform: translateY(-1px); }
+    .btn-next.show { display: block; }
+
+    /* ── Score screen ── */
+    .score-screen {
+      display: none;
+      text-align: center;
+    }
+
+    .score-screen.show { display: block; }
+
+    .score-circle {
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      border: 6px solid #30363d;
+      margin: 0 auto 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.4rem;
+      font-weight: 700;
+      position: relative;
+    }
+
+    .score-circle .score-sub {
+      font-size: 0.75rem;
+      color: #8b949e;
+      font-weight: 400;
+    }
+
+    .score-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .score-msg {
+      color: #8b949e;
+      margin-bottom: 28px;
+      line-height: 1.6;
+    }
+
+    .score-detail {
+      background: #21262d;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 24px;
+      text-align: left;
+    }
+
+    .score-detail h3 {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #8b949e;
+      margin-bottom: 14px;
+    }
+
+    .recap-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid #30363d;
+      font-size: 0.85rem;
+    }
+
+    .recap-item:last-child { border-bottom: none; }
+
+    .recap-icon { flex-shrink: 0; font-size: 1rem; margin-top: 1px; }
+
+    .recap-q { color: #c9d1d9; font-weight: 500; }
+    .recap-a { color: #8b949e; font-size: 0.8rem; margin-top: 2px; }
+
+    .btn-restart {
+      background: #21262d;
+      border: 1.5px solid #30363d;
+      border-radius: 10px;
+      color: #e6edf3;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: 600;
+      padding: 14px 28px;
+      width: 100%;
+      transition: border-color 0.2s;
+    }
+
+    .btn-restart:hover { border-color: #58a6ff; }
+
+    /* ── Quiz screen ── */
+    #quiz-screen { display: block; }
+
+    /* ── Responsive ── */
+    @media (max-width: 500px) {
+      .card { padding: 20px; }
+      .header h1 { font-size: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <span class="shield">🛡️</span>
+    <h1>Quiz Cybersécurité</h1>
+    <p>15 questions pour tester vos réflexes numériques</p>
+  </div>
+
+  <div id="quiz-screen">
+    <div class="progress-bar-wrap">
+      <div class="progress-bar" id="progress-bar"></div>
+    </div>
+    <div class="progress-label" id="progress-label">Question 1 / 15</div>
+
+    <div class="card">
+      <div class="question-num" id="question-num">Question 1</div>
+      <div class="question-text" id="question-text"></div>
+      <div class="options" id="options"></div>
+      <div class="feedback" id="feedback"></div>
+      <button class="btn-next" id="btn-next">Question suivante →</button>
+    </div>
+  </div>
+
+  <div class="card score-screen" id="score-screen">
+    <div class="score-circle" id="score-circle">
+      <span id="score-number">0/15</span>
+      <span class="score-sub">score</span>
+    </div>
+    <div class="score-title" id="score-title"></div>
+    <div class="score-msg" id="score-msg"></div>
+    <div class="score-detail">
+      <h3>Récapitulatif</h3>
+      <div id="recap-list"></div>
+    </div>
+    <button class="btn-restart" onclick="restartQuiz()">🔄 Recommencer le quiz</button>
+  </div>
+
+</div>
+
+<script>
+const QUESTIONS = [
+  {
+    q: "Quel est le signe que vous êtes sur un site web sécurisé ?",
+    options: [
+      "L'adresse commence par « http:// »",
+      "L'adresse commence par « https:// » avec un cadenas",
+      "Le site s'affiche rapidement",
+      "Le site a un beau design"
+    ],
+    answer: 1,
+    explanation: "Le « s » de HTTPS signifie que la connexion est chiffrée. Le cadenas dans la barre d'adresse confirme que vos données sont protégées en transit."
+  },
+  {
+    q: "Vous recevez un e-mail d'urgence de votre banque vous demandant de cliquer sur un lien pour vérifier votre compte. Que faites-vous ?",
+    options: [
+      "Vous cliquez immédiatement sur le lien",
+      "Vous répondez à l'e-mail avec vos identifiants",
+      "Vous ignorez l'e-mail et contactez votre banque via son site officiel",
+      "Vous transférez l'e-mail à vos collègues"
+    ],
+    answer: 2,
+    explanation: "C'est un exemple classique de phishing. Votre banque ne vous demandera jamais vos identifiants par e-mail. Contactez toujours votre banque directement via son site officiel ou son numéro de téléphone."
+  },
+  {
+    q: "Parmi ces mots de passe, lequel est le plus sécurisé ?",
+    options: [
+      "password123",
+      "MonChien2005",
+      "T$7kL!mP#2qR",
+      "azerty"
+    ],
+    answer: 2,
+    explanation: "Un bon mot de passe combine majuscules, minuscules, chiffres et caractères spéciaux, sans mot du dictionnaire. « T$7kL!mP#2qR » est imprévisible et difficile à craquer."
+  },
+  {
+    q: "Qu'est-ce que l'authentification à deux facteurs (2FA) ?",
+    options: [
+      "Utiliser deux mots de passe différents",
+      "Vérifier son identité avec deux éléments distincts (ex : mot de passe + code SMS)",
+      "Se connecter depuis deux appareils simultanément",
+      "Avoir deux comptes sur le même site"
+    ],
+    answer: 1,
+    explanation: "Le 2FA ajoute une couche de sécurité : même si votre mot de passe est volé, un pirate ne pourra pas accéder à votre compte sans le second facteur (code SMS, application d'authentification, etc.)."
+  },
+  {
+    q: "Vous êtes dans un café et vous utilisez le Wi-Fi public gratuit. Que risquez-vous ?",
+    options: [
+      "Rien, le Wi-Fi public est toujours sécurisé",
+      "Une coupure d'internet seulement",
+      "L'interception de vos données par des personnes malveillantes",
+      "Une panne de votre appareil"
+    ],
+    answer: 2,
+    explanation: "Sur un Wi-Fi public non chiffré, un attaquant peut intercepter vos communications (attaque « man-in-the-middle »). Évitez les opérations sensibles (banque, e-mails pro) ou utilisez un VPN."
+  },
+  {
+    q: "Pourquoi est-il important de mettre à jour ses logiciels régulièrement ?",
+    options: [
+      "Pour avoir de nouvelles fonctionnalités uniquement",
+      "Les mises à jour corrigent des failles de sécurité exploitables par des pirates",
+      "Pour rendre son appareil plus lent",
+      "Les mises à jour sont inutiles si l'antivirus est actif"
+    ],
+    answer: 1,
+    explanation: "Les mises à jour de sécurité corrigent des vulnérabilités connues. Sans elles, les pirates peuvent exploiter ces failles pour prendre le contrôle de votre appareil ou voler vos données."
+  },
+  {
+    q: "Qu'est-ce qu'un logiciel malveillant (malware) ?",
+    options: [
+      "Un logiciel qui ralentit votre ordinateur par erreur",
+      "Un programme conçu pour nuire, espionner ou voler des données",
+      "Un antivirus défectueux",
+      "Un logiciel non mis à jour"
+    ],
+    answer: 1,
+    explanation: "Un malware (virus, cheval de Troie, ransomware…) est conçu pour nuire. Il peut chiffrer vos fichiers, espionner vos activités ou voler vos mots de passe."
+  },
+  {
+    q: "Vous trouvez une clé USB dans le parking de votre entreprise. Que faites-vous ?",
+    options: [
+      "Vous la branchez sur votre ordinateur pour voir ce qu'il y a dedans",
+      "Vous la donnez à l'accueil ou au service informatique sans la brancher",
+      "Vous la gardez, c'est un cadeau",
+      "Vous la branchez sur un ordinateur non connecté à internet"
+    ],
+    answer: 1,
+    explanation: "Une clé USB abandonnée est une technique courante d'attaque (« baiting »). Elle peut contenir un malware qui s'exécute dès la connexion. Ne la branchez jamais — remettez-la à votre service informatique."
+  },
+  {
+    q: "Qu'est-ce que le phishing (hameçonnage) ?",
+    options: [
+      "Une technique pour pêcher des poissons en ligne",
+      "Une tentative de vous tromper pour obtenir vos identifiants ou données personnelles",
+      "Un antivirus spécialisé",
+      "Un type de pare-feu"
+    ],
+    answer: 1,
+    explanation: "Le phishing utilise des e-mails, SMS ou sites frauduleux imitant des entités de confiance (banque, administration, réseau social) pour vous soutirer des informations sensibles."
+  },
+  {
+    q: "Combien de comptes différents devriez-vous protéger avec le même mot de passe ?",
+    options: [
+      "Autant que vous voulez, c'est plus pratique",
+      "Maximum 5 comptes",
+      "Zéro — chaque compte doit avoir un mot de passe unique",
+      "Seulement les comptes importants peuvent partager un mot de passe"
+    ],
+    answer: 2,
+    explanation: "Si vous réutilisez un mot de passe et qu'un site est compromis, tous vos comptes utilisant ce mot de passe sont en danger (credential stuffing). Utilisez un gestionnaire de mots de passe !"
+  },
+  {
+    q: "Quelle information ne devriez-vous JAMAIS partager par e-mail ou téléphone si quelqu'un vous le demande ?",
+    options: [
+      "Votre adresse e-mail",
+      "Votre prénom",
+      "Votre mot de passe ou code PIN",
+      "Votre fuseau horaire"
+    ],
+    answer: 2,
+    explanation: "Aucun service légitime (banque, Microsoft, Apple, etc.) ne vous demandera votre mot de passe par e-mail ou téléphone. C'est toujours une tentative de fraude."
+  },
+  {
+    q: "Qu'est-ce qu'un ransomware ?",
+    options: [
+      "Un logiciel de sauvegarde automatique",
+      "Un antivirus gratuit",
+      "Un malware qui chiffre vos fichiers et exige une rançon pour les récupérer",
+      "Un programme de nettoyage de disque dur"
+    ],
+    answer: 2,
+    explanation: "Le ransomware chiffre vos données et réclame une rançon (souvent en cryptomonnaie) pour vous rendre l'accès. La meilleure protection : des sauvegardes régulières hors ligne et des mises à jour à jour."
+  },
+  {
+    q: "Quelle est la bonne pratique concernant les sauvegardes de vos données importantes ?",
+    options: [
+      "Sauvegarder uniquement sur le même disque dur",
+      "Ne pas sauvegarder si l'ordinateur est récent",
+      "Sauvegarder régulièrement sur plusieurs supports (ex : cloud + disque externe)",
+      "Sauvegarder une fois par an suffit"
+    ],
+    answer: 2,
+    explanation: "La règle 3-2-1 recommande : 3 copies de vos données, sur 2 supports différents, dont 1 hors site (cloud ou disque externe déconnecté). Cela vous protège contre les pannes et les ransomwares."
+  },
+  {
+    q: "Vous recevez un appel d'une personne se présentant comme le support technique de Microsoft vous disant que votre ordinateur est infecté. Que faites-vous ?",
+    options: [
+      "Vous leur donnez accès à distance à votre ordinateur",
+      "Vous raccrochez immédiatement — c'est une arnaque",
+      "Vous leur donnez votre mot de passe pour qu'ils réparent le problème",
+      "Vous téléchargez le logiciel qu'ils vous recommandent"
+    ],
+    answer: 1,
+    explanation: "C'est une arnaque très répandue (« tech support scam »). Microsoft, Apple ou tout autre éditeur ne vous appellera JAMAIS spontanément. Raccrochez et signalez l'appel."
+  },
+  {
+    q: "Que signifie « ingénierie sociale » en cybersécurité ?",
+    options: [
+      "La conception de réseaux sociaux sécurisés",
+      "Manipuler psychologiquement une personne pour qu'elle divulgue des informations confidentielles",
+      "Un diplôme en informatique",
+      "La gestion des accès dans une entreprise"
+    ],
+    answer: 1,
+    explanation: "L'ingénierie sociale exploite la psychologie humaine (confiance, peur, urgence) plutôt que des failles techniques. C'est souvent la méthode la plus efficace pour les pirates car elle contourne les systèmes de sécurité."
+  }
+];
+
+let current = 0;
+let score = 0;
+let answers = [];
+let answered = false;
+
+function shuffle(arr) {
+  return [...arr].sort(() => Math.random() - 0.5);
+}
+
+const shuffledQ = shuffle(QUESTIONS);
+const letters = ['A', 'B', 'C', 'D'];
+
+function renderQuestion() {
+  answered = false;
+  const q = shuffledQ[current];
+  const total = shuffledQ.length;
+
+  document.getElementById('progress-bar').style.width = ((current / total) * 100) + '%';
+  document.getElementById('progress-label').textContent = `Question ${current + 1} / ${total}`;
+  document.getElementById('question-num').textContent = `Question ${current + 1}`;
+  document.getElementById('question-text').textContent = q.q;
+
+  const optContainer = document.getElementById('options');
+  optContainer.innerHTML = '';
+  q.options.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.innerHTML = `<span class="option-letter">${letters[i]}</span><span>${opt}</span>`;
+    btn.addEventListener('click', () => selectAnswer(i));
+    optContainer.appendChild(btn);
+  });
+
+  document.getElementById('feedback').className = 'feedback';
+  document.getElementById('feedback').textContent = '';
+  document.getElementById('btn-next').className = 'btn-next';
+  document.getElementById('btn-next').textContent =
+    current < total - 1 ? 'Question suivante →' : 'Voir mon score';
+}
+
+function selectAnswer(selected) {
+  if (answered) return;
+  answered = true;
+
+  const q = shuffledQ[current];
+  const correct = q.answer;
+  const btns = document.querySelectorAll('.option-btn');
+  const feedback = document.getElementById('feedback');
+
+  btns.forEach((btn, i) => {
+    btn.disabled = true;
+    if (i === correct) btn.classList.add('correct');
+    if (i === selected && selected !== correct) btn.classList.add('wrong');
+  });
+
+  const isCorrect = selected === correct;
+  if (isCorrect) score++;
+
+  answers.push({ q: q.q, correct: isCorrect, correctAnswer: q.options[correct] });
+
+  feedback.className = 'feedback show ' + (isCorrect ? 'good' : 'bad');
+  feedback.innerHTML = (isCorrect ? '✅ Bonne réponse ! ' : '❌ Mauvaise réponse. ') + q.explanation;
+
+  document.getElementById('btn-next').classList.add('show');
+}
+
+document.getElementById('btn-next').addEventListener('click', () => {
+  current++;
+  if (current < shuffledQ.length) {
+    renderQuestion();
+  } else {
+    showScore();
+  }
+});
+
+function showScore() {
+  document.getElementById('quiz-screen').style.display = 'none';
+  const scoreScreen = document.getElementById('score-screen');
+  scoreScreen.classList.add('show');
+
+  const pct = score / shuffledQ.length;
+  const circle = document.getElementById('score-circle');
+  document.getElementById('score-number').textContent = `${score}/${shuffledQ.length}`;
+
+  let color, title, msg;
+  if (pct >= 0.9) {
+    color = '#3fb950'; title = '🏆 Expert en cybersécurité !';
+    msg = 'Excellent ! Vous maîtrisez les bonnes pratiques de sécurité numérique. Continuez comme ça et partagez ces connaissances autour de vous !';
+  } else if (pct >= 0.7) {
+    color = '#58a6ff'; title = '👍 Bon niveau !';
+    msg = 'Vous avez de bonnes bases en cybersécurité. Quelques points à perfectionner, mais vous êtes sur la bonne voie !';
+  } else if (pct >= 0.5) {
+    color = '#d29922'; title = '⚠️ Des lacunes à combler';
+    msg = 'Vous connaissez quelques bonnes pratiques mais des zones de risque existent. Revoyez les réponses incorrectes et relancez le quiz !';
+  } else {
+    color = '#f85149'; title = '🚨 Attention, vous êtes vulnérable !';
+    msg = 'Votre profil présente des risques importants. Ne vous inquiétez pas — ce quiz est là pour apprendre ! Relisez les explications et recommencez.';
+  }
+
+  circle.style.borderColor = color;
+  document.getElementById('score-title').style.color = color;
+  document.getElementById('score-title').textContent = title;
+  document.getElementById('score-msg').textContent = msg;
+
+  const recap = document.getElementById('recap-list');
+  recap.innerHTML = '';
+  answers.forEach(a => {
+    const div = document.createElement('div');
+    div.className = 'recap-item';
+    div.innerHTML = `
+      <span class="recap-icon">${a.correct ? '✅' : '❌'}</span>
+      <div>
+        <div class="recap-q">${a.q}</div>
+        ${!a.correct ? `<div class="recap-a">Bonne réponse : ${a.correctAnswer}</div>` : ''}
+      </div>`;
+    recap.appendChild(div);
+  });
+}
+
+function restartQuiz() {
+  current = 0;
+  score = 0;
+  answers = [];
+  shuffledQ.forEach((_, i, arr) => {
+    const j = Math.floor(Math.random() * arr.length);
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  });
+  document.getElementById('score-screen').classList.remove('show');
+  document.getElementById('quiz-screen').style.display = 'block';
+  renderQuestion();
+}
+
+renderQuestion();
+</script>
+</body>
+</html>
