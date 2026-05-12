@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>2025 French Cybersecurity Innovation Radar</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #07071a;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+    }
+
+    h1 {
+      color: #ccd6f6;
+      font-size: 1rem;
+      font-weight: 400;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+      opacity: .6;
+    }
+
+    /* ── Radar wrapper ── */
+    #radar-wrap {
+      position: relative;
+      width: 100%;
+      max-width: 1280px;
+      line-height: 0;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 8px 40px rgba(0,0,0,.7);
+    }
+
+    #radar-img {
+      width: 100%;
+      height: auto;
+      display: block;
+      user-select: none;
+      pointer-events: none;
+    }
+
+    /* ── Overlay layer (covers the image exactly) ── */
+    #overlay-layer {
+      position: absolute;
+      inset: 0;
+      pointer-events: none; /* individual chips set their own */
+    }
+
+    /* ── Logo chip ── */
+    .lc {
+      position: absolute;
+      pointer-events: all;
+      cursor: pointer;
+      border-radius: 3px;
+      border: 1.5px solid transparent;
+      background: transparent;
+      transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+    }
+
+    .lc:hover {
+      border-color: var(--c);
+      background: color-mix(in srgb, var(--c) 12%, transparent);
+      box-shadow: 0 0 0 1px color-mix(in srgb, var(--c) 40%, transparent),
+                  0 0 10px color-mix(in srgb, var(--c) 45%, transparent);
+      z-index: 50;
+    }
+
+    /* ── Popup backdrop ── */
+    #pop-bg {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.55);
+      backdrop-filter: blur(4px);
+      z-index: 900;
+      justify-content: center;
+      align-items: center;
+    }
+    #pop-bg.on { display: flex; }
+
+    /* ── Popup card ── */
+    #pop-card {
+      background: linear-gradient(145deg, #12122a, #0e1730);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 14px;
+      padding: 28px 30px 26px;
+      width: min(500px, 92vw);
+      color: #dde3f4;
+      box-shadow: 0 24px 70px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.04);
+      position: relative;
+      animation: popIn .18s cubic-bezier(.22,1,.36,1);
+    }
+    @keyframes popIn {
+      from { opacity:0; transform: scale(.93) translateY(8px); }
+      to   { opacity:1; transform: scale(1)  translateY(0); }
+    }
+
+    #pop-close {
+      position: absolute;
+      top: 10px; right: 14px;
+      background: none; border: none;
+      font-size: 22px; line-height: 1;
+      color: #556; cursor: pointer;
+      transition: color .15s;
+    }
+    #pop-close:hover { color: #fff; }
+
+    #pop-badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 20px;
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      margin-bottom: 9px;
+    }
+
+    #pop-name {
+      font-size: 22px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 14px;
+    }
+
+    #pop-body {
+      font-size: 13.5px;
+      line-height: 1.65;
+      color: #8ea0c4;
+      border-top: 1px solid rgba(255,255,255,.08);
+      padding-top: 13px;
+      min-height: 52px;
+    }
+    #pop-body.ph { font-style: italic; color: #445; }
+
+    /* ── Dev-mode helpers ── */
+    #dev-bar {
+      display: none;
+      position: fixed;
+      bottom: 14px; right: 14px;
+      z-index: 1000;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 6px;
+    }
+    #dev-bar.on { display: flex; }
+
+    #dev-label {
+      background: rgba(255,80,0,.9);
+      color: #fff;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    #dev-coord {
+      background: rgba(0,0,0,.85);
+      color: #0f0;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-family: monospace;
+    }
+
+    /* ── Legend ── */
+    #legend {
+      margin-top: 14px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      max-width: 1280px;
+      padding: 0 10px;
+    }
+    .leg-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 10.5px;
+      color: #8898bb;
+    }
+    .leg-dot {
+      width: 9px; height: 9px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+
+<h1>2025 French Cybersecurity Innovation Radar — by Wavestone &amp; bpifrance</h1>
+
+<div id="radar-wrap">
+  <img id="radar-img" src="radarcyber.png" alt="Radar Cybersécurité 2025" />
+  <div id="overlay-layer"></div>
+</div>
+
+<div id="legend"></div>
+
+<!-- Popup -->
+<div id="pop-bg">
+  <div id="pop-card">
+    <button id="pop-close" title="Fermer (Échap)">×</button>
+    <div id="pop-badge"></div>
+    <div id="pop-name"></div>
+    <div id="pop-body"></div>
+  </div>
+</div>
+
+<!-- Dev mode -->
+<div id="dev-bar">
+  <div id="dev-label">DEV MODE · Ctrl+D to toggle</div>
+  <div id="dev-coord">x: 0%, y: 0%</div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════════════════
+//  SECTION CATALOGUE
+//  key  → { label, color }
+// ══════════════════════════════════════════════════════════════════════════════
+const SECTIONS = {
+  "watermarking":             { label: "Watermarking",                    color: "#a855f7" },
+  "artificial-intelligence":  { label: "Artificial Intelligence",          color: "#818cf8" },
+  "iot-security":             { label: "IoT Security",                     color: "#22d3ee" },
+  "vulnerabilities":          { label: "Vulnerabilities",                  color: "#fb923c" },
+  "attack-surface":           { label: "Attack Surface Management",        color: "#f97316" },
+  "anti-fraud":               { label: "Anti-Fraud",                       color: "#ef4444" },
+  "endpoints":                { label: "Endpoints",                        color: "#22c55e" },
+  "awareness":                { label: "Awareness",                        color: "#eab308" },
+  "privacy":                  { label: "Privacy",                          color: "#ec4899" },
+  "governance":               { label: "Governance & Compliance",          color: "#c084fc" },
+  "secure-data":              { label: "Secure Data Exchange",             color: "#60a5fa" },
+  "threat-intelligence":      { label: "Threat & Actor Intelligence",      color: "#f87171" },
+  "cyber-range":              { label: "Cyber Range",                      color: "#fdba74" },
+  "crisis-management":        { label: "Crisis Management",                color: "#94a3b8" },
+  "data-security":            { label: "Data Security",                    color: "#c026d3" },
+  "cloud-security":           { label: "Cloud Security",                   color: "#3b82f6" },
+  "application-security":     { label: "Application Security",             color: "#16a34a" },
+  "identity-access":          { label: "Identity & Access Management",     color: "#06b6d4" },
+  "network-security":         { label: "Network Security",                 color: "#f59e0b" },
+  "surveillance":             { label: "Surveillance",                     color: "#64748b" },
+  "incident-response":        { label: "Incident Response",                color: "#dc2626" },
+  "scaleup-govern":           { label: "Scale-Up · Govern",                color: "#6366f1" },
+  "scaleup-identify":         { label: "Scale-Up · Identify",              color: "#06b6d4" },
+  "scaleup-protect":          { label: "Scale-Up · Protect",               color: "#22c55e" },
+  "scaleup-detect":           { label: "Scale-Up · Detect",                color: "#f59e0b" },
+  "scaleup-respond":          { label: "Scale-Up · Respond",               color: "#ef4444" },
+  "scaleup-recover":          { label: "Scale-Up · Recover",               color: "#94a3b8" },
+  "unicorn":                  { label: "Unicorn",                          color: "#fbbf24" },
+};
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  LOGO CATALOGUE
+//  { id, name, section, x, y, w, h, content }
+//  x / y / w / h  → percentages of rendered image dimensions
+//  content        → HTML shown in popup (null = placeholder)
+// ══════════════════════════════════════════════════════════════════════════════
+const LOGOS = [
+
+  // ── WATERMARKING (top-left small bubble) ──────────────────────────────────
+  { id:"watoc",          name:"WaToc",             section:"watermarking",            x:3.5,  y:7.5,  w:7,   h:4.5 },
+  { id:"label4ai",       name:"LABEL4 AI",          section:"watermarking",            x:3,    y:13,   w:8,   h:4.5 },
+
+  // ── ARTIFICIAL INTELLIGENCE (top-left bubble) ─────────────────────────────
+  { id:"aividence",      name:"AI VIDENCE",         section:"artificial-intelligence", x:17.5, y:3,    w:9,   h:4.5 },
+  { id:"safebrainai",    name:"SAFEBRAIN AI",        section:"artificial-intelligence", x:14.5, y:7.5,  w:10,  h:4.5 },
+  { id:"skyld",          name:"SKYLD",               section:"artificial-intelligence", x:24.5, y:4,    w:6.5, h:4.5 },
+  { id:"suzanai",        name:"Suzan AI",            section:"artificial-intelligence", x:18.5, y:12.5, w:8,   h:4.5 },
+  { id:"viceversa",      name:"viceversa",           section:"artificial-intelligence", x:24,   y:12,   w:8,   h:4.5 },
+  { id:"naaia",          name:"naaia",               section:"artificial-intelligence", x:17.5, y:18,   w:6,   h:4.5 },
+  { id:"giskard",        name:"Giskard",             section:"artificial-intelligence", x:23.5, y:18.5, w:7,   h:4.5 },
+  { id:"nijta",          name:"Nijta",               section:"artificial-intelligence", x:15,   y:23,   w:5.5, h:4.5 },
+  { id:"numalis",        name:"numalis",             section:"artificial-intelligence", x:21.5, y:23.5, w:8,   h:4.5 },
+
+  // ── SECURE DATA EXCHANGE (left bubble) ───────────────────────────────────
+  { id:"berty",          name:"berty",               section:"secure-data",             x:6.5,  y:26.5, w:5,   h:4   },
+  { id:"angelia",        name:"angelia",             section:"secure-data",             x:12,   y:24.5, w:7,   h:4   },
+  { id:"ziplo",          name:"ziplo",               section:"secure-data",             x:6.5,  y:30.5, w:5,   h:4   },
+  { id:"wysam",          name:"WYSAM",               section:"secure-data",             x:11.5, y:30,   w:7,   h:4   },
+  { id:"umbra",          name:"umbra",               section:"secure-data",             x:3,    y:34.5, w:6,   h:4   },
+  { id:"snowpack",       name:"snowpack",            section:"secure-data",             x:8.5,  y:34.5, w:8,   h:4   },
+  { id:"blkkus",         name:"BL•KKUS",             section:"secure-data",             x:13,   y:37.5, w:8.5, h:4   },
+  { id:"treebal",        name:"treebal",             section:"secure-data",             x:3,    y:40.5, w:7,   h:4   },
+  { id:"lagertha",       name:"LAGERTHA",            section:"secure-data",             x:9.5,  y:40,   w:8,   h:4   },
+  { id:"pacem",          name:"pacem",               section:"secure-data",             x:6,    y:45,   w:5.5, h:4   },
+  { id:"olvid",          name:"Olvid",               section:"secure-data",             x:10.5, y:45,   w:5.5, h:4   },
+  { id:"narval",         name:"Narval",              section:"secure-data",             x:6.5,  y:50,   w:6.5, h:4   },
+
+  // ── THREAT & ACTOR INTELLIGENCE (bottom-left bubble) ─────────────────────
+  { id:"opencve",        name:"OpenCVE",             section:"threat-intelligence",     x:3,    y:54,   w:8,   h:4.5 },
+  { id:"predictlab",     name:"PREDICTA LAB",        section:"threat-intelligence",     x:4.5,  y:59,   w:10,  h:4.5 },
+  { id:"datacri",        name:"DATA CRI",            section:"threat-intelligence",     x:10.5, y:57,   w:8,   h:4.5 },
+  { id:"epieos",         name:"EPIEOS",              section:"threat-intelligence",     x:3.5,  y:64,   w:7.5, h:4.5 },
+
+  // ── CYBER RANGE (bottom-left inner bubble) ────────────────────────────────
+  { id:"dataxium",       name:"DATAXIUM",            section:"cyber-range",             x:17.5, y:51,   w:9,   h:4.5 },
+  { id:"secdojo",        name:"SecDojo",             section:"cyber-range",             x:18.5, y:55.5, w:7.5, h:4.5 },
+  { id:"beware",         name:"BEWARE",              section:"cyber-range",             x:16.5, y:60,   w:7.5, h:4.5 },
+
+  // ── CRISIS MANAGEMENT (bottom-left inner bubble) ─────────────────────────
+  { id:"aucae",          name:"AUCAE",               section:"crisis-management",       x:17,   y:64.5, w:7,   h:4.5 },
+  { id:"alcyconie",      name:"alcyconie",           section:"crisis-management",       x:18.5, y:68.5, w:9,   h:4.5 },
+  { id:"dreamon",        name:"Dream On Technology", section:"crisis-management",       x:16,   y:73.5, w:13,  h:4   },
+
+  // ── IOT SECURITY (top-center bubble) ─────────────────────────────────────
+  { id:"seckiot",        name:"SECKIOT",             section:"iot-security",            x:43.5, y:2,    w:8,   h:4.5 },
+  { id:"aiotrust",       name:"AIoTRUST",            section:"iot-security",            x:48.5, y:5.5,  w:8.5, h:4.5 },
+  { id:"aphelio",        name:"APHELIO",             section:"iot-security",            x:42.5, y:10.5, w:8,   h:4.5 },
+  { id:"parcodr",        name:"PARCODR",             section:"iot-security",            x:50.5, y:10.5, w:8,   h:4.5 },
+  { id:"seedfence",      name:"SeedFence",           section:"iot-security",            x:43.5, y:15.5, w:9.5, h:4.5 },
+
+  // ── VULNERABILITIES (top-right bubble) ───────────────────────────────────
+  { id:"cybi_vuln",      name:"Cybi",                section:"vulnerabilities",         x:62,   y:3.5,  w:5,   h:4   },
+  { id:"compfacts",      name:"computablefacts",     section:"vulnerabilities",         x:65.5, y:7,    w:12,  h:4   },
+  { id:"xeinos",         name:"XEINOS",              section:"vulnerabilities",         x:73,   y:4.5,  w:7,   h:4   },
+  { id:"knockknock",     name:"KNOCKKNOCK",          section:"vulnerabilities",         x:61.5, y:11,   w:11,  h:4   },
+  { id:"moabi",          name:"MOABI",               section:"vulnerabilities",         x:72.5, y:11,   w:6.5, h:4   },
+  { id:"situation",      name:"{Situation}",         section:"vulnerabilities",         x:61,   y:16,   w:9,   h:4   },
+  { id:"cybedefend",     name:"CYBEDEFEND",          section:"vulnerabilities",         x:70,   y:16,   w:10,  h:4   },
+  { id:"x88security",    name:"x88 Security",        section:"vulnerabilities",         x:61,   y:21,   w:9.5, h:4   },
+  { id:"securas",        name:"SECURAS",             section:"vulnerabilities",         x:71,   y:21,   w:8.5, h:4   },
+  { id:"mobeta",         name:"MOBETA",              section:"vulnerabilities",         x:62.5, y:26,   w:9,   h:4   },
+
+  // ── ATTACK SURFACE MANAGEMENT (top-right bubble) ─────────────────────────
+  { id:"kerys",          name:"KERYS",               section:"attack-surface",          x:81.5, y:7,    w:7,   h:4.5 },
+  { id:"purplement",     name:"purplement",          section:"attack-surface",          x:83.5, y:12,   w:9,   h:4.5 },
+  { id:"sekost",         name:"Seköst",              section:"attack-surface",          x:80.5, y:17,   w:7.5, h:4.5 },
+  { id:"deepinfo",       name:"DeepInfo",            section:"attack-surface",          x:87,   y:17,   w:8,   h:4.5 },
+  { id:"oversoc",        name:"OVERSOC",             section:"attack-surface",          x:83,   y:22,   w:8.5, h:4.5 },
+
+  // ── ANTI-FRAUD (right bubble) ─────────────────────────────────────────────
+  { id:"uncovl",         name:"uncov1",              section:"anti-fraud",              x:86,   y:23,   w:7,   h:4   },
+  { id:"franceverif",    name:"FRANCE VERIF",        section:"anti-fraud",              x:92,   y:23,   w:8,   h:4   },
+  { id:"bleckwen",       name:"BLECKWEN",            section:"anti-fraud",              x:86.5, y:27.5, w:9,   h:4   },
+  { id:"eysu",           name:"eYSU",                section:"anti-fraud",              x:86,   y:32,   w:5.5, h:4   },
+  { id:"cyber_af",       name:"CYBER",               section:"anti-fraud",              x:92,   y:30.5, w:7,   h:4   },
+  { id:"deepfrauds",     name:"DeepFrauds.ai",       section:"anti-fraud",              x:85.5, y:36.5, w:11,  h:4   },
+  { id:"kleer",          name:"kleer.",              section:"anti-fraud",              x:93,   y:34,   w:6,   h:4   },
+  { id:"finovox",        name:"Finovox",             section:"anti-fraud",              x:85,   y:41,   w:8,   h:4   },
+  { id:"ab_af",          name:"ab",                  section:"anti-fraud",              x:93,   y:39.5, w:4.5, h:4   },
+
+  // ── ENDPOINTS (right-center bubble) ──────────────────────────────────────
+  { id:"nucleon",        name:"Nucleon",             section:"endpoints",               x:83,   y:28,   w:7,   h:3.5 },
+  { id:"daspren",        name:"Daspren",             section:"endpoints",               x:89,   y:29,   w:7,   h:3.5 },
+  { id:"bitrustis",      name:"BITRUSTIS",           section:"endpoints",               x:82,   y:33,   w:9,   h:3.5 },
+  { id:"cybershen",      name:"cybershen",           section:"endpoints",               x:88,   y:36,   w:9,   h:3.5 },
+  { id:"shindan",        name:"Shindan",             section:"endpoints",               x:83,   y:40,   w:7.5, h:3.5 },
+
+  // ── AWARENESS (right bubble) ──────────────────────────────────────────────
+  { id:"arsen",          name:"ARSEN",               section:"awareness",               x:82.5, y:44,   w:6.5, h:4   },
+  { id:"captaincyber",   name:"captain cyber",       section:"awareness",               x:88.5, y:43.5, w:9,   h:4   },
+  { id:"kamae",          name:"KAMAé",               section:"awareness",               x:93.5, y:44.5, w:6,   h:4   },
+  { id:"brainsec",       name:"brain security",      section:"awareness",               x:82,   y:48,   w:10,  h:4   },
+  { id:"seela",          name:"Seela",               section:"awareness",               x:85.5, y:52.5, w:6,   h:4   },
+  { id:"cyberzen",       name:"cyberzen",            section:"awareness",               x:90,   y:49,   w:8,   h:4   },
+  { id:"cyralgoris",     name:"CYRALGORIS",          section:"awareness",               x:89.5, y:53,   w:10,  h:4   },
+  { id:"bottapren",      name:"BOTTAPREN",           section:"awareness",               x:82,   y:57,   w:9,   h:4   },
+  { id:"caldra",         name:"CALDRA",              section:"awareness",               x:91,   y:57,   w:7,   h:4   },
+
+  // ── PRIVACY (bottom-right bubble) ────────────────────────────────────────
+  { id:"nestor",         name:"nestor",              section:"privacy",                 x:87.5, y:60,   w:6.5, h:4   },
+  { id:"sarus",          name:"Sarus",               section:"privacy",                 x:93.5, y:60,   w:6,   h:4   },
+  { id:"leto",           name:"Leto",                section:"privacy",                 x:83.5, y:65,   w:5,   h:4   },
+  { id:"sentinelle",     name:"SENTINELLE",          section:"privacy",                 x:91,   y:65,   w:9.5, h:4   },
+  { id:"hamyna",         name:"Hamyna",              section:"privacy",                 x:86.5, y:70,   w:7,   h:4   },
+  { id:"dastra",         name:"dastra",              section:"privacy",                 x:92,   y:70,   w:6.5, h:4   },
+  { id:"private_k",     name:"PRIVATE",             section:"privacy",                 x:83,   y:75,   w:8,   h:4   },
+  { id:"octopize",       name:"OCTOPIZE",            section:"privacy",                 x:90.5, y:75,   w:9,   h:4   },
+
+  // ── DATA SECURITY (inner radar segment — purple zone) ─────────────────────
+  { id:"hekma",          name:"HEKMA",               section:"data-security",           x:33,   y:15.5, w:7.5, h:3.5 },
+  { id:"abc",            name:"A.B.C",               section:"data-security",           x:37,   y:19,   w:4.5, h:3.5 },
+  { id:"ugloo",          name:"ugloo",               section:"data-security",           x:32.5, y:22.5, w:6,   h:3.5 },
+  { id:"bustai",         name:"Bust.AI",             section:"data-security",           x:39,   y:16.5, w:7,   h:3.5 },
+  { id:"powershield",    name:"PowerSchield",        section:"data-security",           x:41,   y:21,   w:9.5, h:3.5 },
+  { id:"astran",         name:"ASTRAN",              section:"data-security",           x:30,   y:26.5, w:8,   h:3.5 },
+  { id:"cryspen",        name:"CRYSP•N",             section:"data-security",           x:29.5, y:31,   w:8.5, h:3.5 },
+  { id:"legapass",       name:"L'EGAPASS",           section:"data-security",           x:35.5, y:31,   w:9.5, h:3.5 },
+  { id:"mailstone",      name:"mailstone",           section:"data-security",           x:40,   y:33.5, w:8.5, h:3.5 },
+  { id:"timeret",        name:"timeret",             section:"data-security",           x:44.5, y:34,   w:7,   h:3.5 },
+  { id:"leviia",         name:"leviia",              section:"data-security",           x:38,   y:39,   w:6.5, h:3.5 },
+  { id:"breezyai",       name:"BreezyAI",            section:"data-security",           x:29,   y:37,   w:8.5, h:3.5 },
+  { id:"chimere",        name:"CHIMERE",             section:"data-security",           x:30,   y:42,   w:8,   h:3.5 },
+  { id:"trout",          name:"Trout",               section:"data-security",           x:30,   y:47,   w:6,   h:3.5 },
+  { id:"custogy",        name:"CUSTOGY",             section:"data-security",           x:37,   y:47,   w:8.5, h:3.5 },
+  { id:"p4s",            name:"P4S",                 section:"data-security",           x:43.5, y:46.5, w:4.5, h:3.5 },
+  { id:"trapster",       name:"TRAPSTER",            section:"data-security",           x:29,   y:52,   w:9,   h:3.5 },
+  { id:"merox",          name:"merox",               section:"data-security",           x:37.5, y:52,   w:6,   h:3.5 },
+  { id:"cetrac",         name:"cetraC",              section:"data-security",           x:42.5, y:52,   w:7,   h:3.5 },
+  { id:"wybot",          name:"WYBOT",               section:"data-security",           x:29,   y:57,   w:7,   h:3.5 },
+  { id:"serenicity",     name:"SERENICITY",          section:"data-security",           x:43,   y:57,   w:9.5, h:3.5 },
+  { id:"cyberium",       name:"Cyberium",            section:"data-security",           x:29,   y:62,   w:9,   h:3.5 },
+  { id:"noways",         name:"noways",              section:"data-security",           x:37,   y:62,   w:7,   h:3.5 },
+  { id:"altnativ",       name:"alt•nativ",           section:"data-security",           x:43,   y:62,   w:8.5, h:3.5 },
+
+  // ── CLOUD SECURITY (inner radar segment — blue zone) ──────────────────────
+  { id:"cosmian",        name:"cosmian",             section:"cloud-security",          x:47.5, y:19,   w:7.5, h:3.5 },
+  { id:"escape",         name:"escape",              section:"cloud-security",          x:53.5, y:15.5, w:6.5, h:3.5 },
+  { id:"ravel",          name:"ravel",               section:"cloud-security",          x:57,   y:18.5, w:5.5, h:3.5 },
+  { id:"progicode",      name:"progicode",           section:"cloud-security",          x:52.5, y:22,   w:9,   h:3.5 },
+  { id:"neftune",        name:"Neftune",             section:"cloud-security",          x:54,   y:26,   w:7,   h:3.5 },
+  { id:"continus",       name:"Continus",            section:"cloud-security",          x:57,   y:29.5, w:8.5, h:3.5 },
+
+  // ── APPLICATION SECURITY (inner radar segment — green zone) ───────────────
+  { id:"symbiotic",      name:"Symbiotic",           section:"application-security",    x:57.5, y:26,   w:9,   h:3.5 },
+  { id:"valm10",         name:"VALM 1.0",            section:"application-security",    x:60.5, y:33,   w:8.5, h:3.5 },
+  { id:"whspeak",        name:"WHSPEAK",             section:"application-security",    x:62,   y:36.5, w:8,   h:3.5 },
+  { id:"bigpicl",        name:"BIG PICL",            section:"application-security",    x:62,   y:40,   w:8,   h:3.5 },
+
+  // ── IDENTITY & ACCESS MANAGEMENT (inner radar segment — teal zone) ────────
+  { id:"shareid",        name:"ShareID",             section:"identity-access",         x:63,   y:38,   w:7.5, h:3.5 },
+  { id:"fairtrust",      name:"fair trust",          section:"identity-access",         x:63,   y:43,   w:8.5, h:3.5 },
+  { id:"rebop",          name:"reBop",               section:"identity-access",         x:59.5, y:43,   w:5.5, h:3.5 },
+  { id:"openscam",       name:"OPENSCAM",            section:"identity-access",         x:58.5, y:47.5, w:9,   h:3.5 },
+  { id:"presentid",      name:"PRESENT ID",          section:"identity-access",         x:63.5, y:48,   w:9.5, h:3.5 },
+  { id:"zygon",          name:"zygon",               section:"identity-access",         x:59.5, y:52,   w:6.5, h:3.5 },
+  { id:"vaultys",        name:"VAULTYS",             section:"identity-access",         x:56,   y:52,   w:7.5, h:3.5 },
+  { id:"regpass",        name:"REGPASS",             section:"identity-access",         x:57.5, y:57,   w:7.5, h:3.5 },
+  { id:"lucknest",       name:"Lucknest",            section:"identity-access",         x:62,   y:57,   w:8.5, h:3.5 },
+  { id:"dynatrust",      name:"DYNATRUST",           section:"identity-access",         x:57,   y:61.5, w:9,   h:3.5 },
+  { id:"skypher",        name:"SKYPHER",             section:"identity-access",         x:62.5, y:62,   w:8,   h:3.5 },
+  { id:"control",        name:"Control",             section:"identity-access",         x:57.5, y:65.5, w:7,   h:3.5 },
+  { id:"tendercrunch",   name:"TenderCrunch",        section:"identity-access",         x:63,   y:66,   w:9.5, h:3.5 },
+  { id:"bastion",        name:"Bastion",             section:"identity-access",         x:57.5, y:70,   w:7,   h:3.5 },
+  { id:"evako",          name:"EVAKO",               section:"identity-access",         x:63.5, y:70.5, w:6,   h:3.5 },
+  { id:"anticip",        name:"Anticip Risk",        section:"identity-access",         x:62,   y:74,   w:10,  h:3.5 },
+  { id:"makesafe",       name:"MAKE SAFE",           section:"identity-access",         x:56,   y:73.5, w:8,   h:3.5 },
+  { id:"pharisdoft",     name:"Pharisdoft",          section:"identity-access",         x:63,   y:77.5, w:9,   h:3.5 },
+  { id:"fgalink",        name:"Fgalink",             section:"identity-access",         x:56,   y:77,   w:7.5, h:3.5 },
+  { id:"intuitem",       name:"Intuitem",            section:"identity-access",         x:57,   y:80.5, w:7.5, h:3.5 },
+
+  // ── NETWORK SECURITY (inner radar segment — orange zone) ──────────────────
+  { id:"ncvp",           name:"N-CVP",               section:"network-security",        x:33.5, y:65.5, w:7,   h:3.5 },
+  { id:"logcraftio",     name:"LogCraft.io",         section:"network-security",        x:33,   y:69.5, w:9.5, h:3.5 },
+  { id:"mokn",           name:"MOKN",                section:"network-security",        x:43,   y:69,   w:5.5, h:3.5 },
+  { id:"eurocyber",      name:"EURO CYBER",          section:"network-security",        x:47,   y:65.5, w:10.5,h:3.5 },
+
+  // ── SURVEILLANCE (inner radar segment — gray zone) ────────────────────────
+  { id:"mindflour",      name:"mindflour",           section:"surveillance",            x:30,   y:72,   w:9.5, h:3.5 },
+  { id:"darkfindr",      name:"DARKFINDR",           section:"surveillance",            x:31,   y:76,   w:9.5, h:3.5 },
+  { id:"neroswarm",      name:"NeroSwarm",           section:"surveillance",            x:38.5, y:73,   w:9.5, h:3.5 },
+  { id:"nyble",          name:"NYBLE",               section:"surveillance",            x:44.5, y:73,   w:6,   h:3.5 },
+  { id:"forensicg",      name:"Forensic G",          section:"surveillance",            x:48,   y:73,   w:8.5, h:3.5 },
+
+  // ── INCIDENT RESPONSE (inner radar segment — red zone) ───────────────────
+  { id:"efants",         name:"efants",              section:"incident-response",       x:38,   y:77.5, w:7,   h:3.5 },
+  { id:"aegis",          name:"AEGIS",               section:"incident-response",       x:44,   y:78.5, w:7,   h:3.5 },
+  { id:"burp",           name:"BURP",                section:"incident-response",       x:33,   y:80,   w:5.5, h:3.5 },
+  { id:"malizien",       name:"Malizien",            section:"incident-response",       x:38.5, y:80.5, w:7.5, h:3.5 },
+
+  // ══════════════════════════════════════════════════════════════════════════
+  //  SCALE-UPS STRIP  (bottom band ~ y 84–100%)
+  // ══════════════════════════════════════════════════════════════════════════
+
+  // ── GOVERN ────────────────────────────────────────────────────────────────
+  { id:"mydpo",          name:"myDPO",               section:"scaleup-govern",          x:1.5,  y:85.5, w:5.5, h:4   },
+  { id:"citalid",        name:"Citalid",             section:"scaleup-govern",          x:5.5,  y:85.5, w:5.5, h:4   },
+  { id:"trustpair",      name:"trustpair",           section:"scaleup-govern",          x:9.5,  y:85,   w:8.5, h:4   },
+  { id:"cybervadis",     name:"cyber.vadis",         section:"scaleup-govern",          x:1.5,  y:90,   w:7.5, h:4   },
+  { id:"ifi",            name:"IFI",                 section:"scaleup-govern",          x:7.5,  y:90,   w:5,   h:4   },
+  { id:"tenacy",         name:"Tenacy",              section:"scaleup-govern",          x:13,   y:85,   w:7,   h:4   },
+  { id:"didomi",         name:"DIDOMI",              section:"scaleup-govern",          x:10,   y:90.5, w:7,   h:4   },
+  { id:"stoik",          name:"stoik",               section:"scaleup-govern",          x:13.5, y:93,   w:5.5, h:4   },
+  { id:"boardcyber",     name:"board of cyber",      section:"scaleup-govern",          x:1.5,  y:95,   w:9.5, h:4   },
+  { id:"dakto",          name:"DAKTO",               section:"scaleup-govern",          x:10,   y:95,   w:6,   h:4   },
+  { id:"egerie",         name:"egerie",              section:"scaleup-govern",          x:13.5, y:97.5, w:5.5, h:2.5 },
+
+  // ── IDENTIFY ──────────────────────────────────────────────────────────────
+  { id:"filigran",       name:"Filigran",            section:"scaleup-identify",        x:18.5, y:85,   w:7.5, h:4   },
+  { id:"patrow",         name:"Patrow",              section:"scaleup-identify",        x:24,   y:85,   w:6.5, h:4   },
+  { id:"memory",         name:"memory",              section:"scaleup-identify",        x:18.5, y:90,   w:7.5, h:4   },
+  { id:"cybelangel",     name:"CybelAngel",          section:"scaleup-identify",        x:17.5, y:95,   w:9.5, h:4   },
+  { id:"sahar",          name:"SAHAR",               section:"scaleup-identify",        x:24,   y:93.5, w:5.5, h:4   },
+
+  // ── PROTECT ───────────────────────────────────────────────────────────────
+  { id:"bforeai",        name:"BforeAI",             section:"scaleup-protect",         x:28.5, y:85,   w:7.5, h:3.5 },
+  { id:"crypto_sp",      name:"CRYPTO",              section:"scaleup-protect",         x:34.5, y:85,   w:7,   h:3.5 },
+  { id:"avantdecliquer", name:"AvantdeCliquer",      section:"scaleup-protect",         x:40,   y:85,   w:11.5,h:3.5 },
+  { id:"seclab",         name:"seclab",              section:"scaleup-protect",         x:45.5, y:85,   w:5.5, h:3.5 },
+  { id:"riot",           name:"Riot",                section:"scaleup-protect",         x:50,   y:85,   w:5,   h:3.5 },
+  { id:"zama",           name:"ZAMA",                section:"scaleup-protect",         x:54.5, y:85,   w:5.5, h:3.5 },
+  { id:"dkns",           name:"DKNS",                section:"scaleup-protect",         x:28.5, y:89.5, w:5.5, h:3.5 },
+  { id:"dattak",         name:"DATTAK",              section:"scaleup-protect",         x:33,   y:89.5, w:7.5, h:3.5 },
+  { id:"yousign",        name:"yousign",             section:"scaleup-protect",         x:38,   y:89.5, w:7,   h:3.5 },
+  { id:"protected",      name:"Protected",           section:"scaleup-protect",         x:43,   y:89.5, w:8.5, h:3.5 },
+  { id:"ogo",            name:"OGO",                 section:"scaleup-protect",         x:49.5, y:89.5, w:4.5, h:3.5 },
+  { id:"datadome",       name:"3DDataDome",          section:"scaleup-protect",         x:52,   y:89.5, w:9.5, h:3.5 },
+  { id:"lockself",       name:"LOCKSELF",            section:"scaleup-protect",         x:28.5, y:94,   w:8,   h:3.5 },
+  { id:"provenrun",      name:"PROVENRUN",           section:"scaleup-protect",         x:35.5, y:94,   w:9.5, h:3.5 },
+  { id:"mailinblack",    name:"MAILINBLACK",         section:"scaleup-protect",         x:43,   y:94,   w:10.5,h:3.5 },
+  { id:"hackuity",       name:"hackuity",            section:"scaleup-protect",         x:52,   y:94,   w:7,   h:3.5 },
+  { id:"sisid",          name:"SisID",               section:"scaleup-protect",         x:57.5, y:94,   w:5.5, h:3.5 },
+
+  // ── DETECT ────────────────────────────────────────────────────────────────
+  { id:"gitguardian",    name:"GitGuardian",         section:"scaleup-detect",          x:62,   y:85,   w:9.5, h:3.5 },
+  { id:"harfanglab",     name:"HarfangLab",          section:"scaleup-detect",          x:71,   y:85,   w:9.5, h:3.5 },
+  { id:"glimps",         name:"GLIMPS",              section:"scaleup-detect",          x:79,   y:86,   w:7,   h:3.5 },
+  { id:"gatewatcher",    name:"GATEWATCHER",         section:"scaleup-detect",          x:62,   y:89.5, w:11,  h:3.5 },
+  { id:"eshard",         name:"eShard",              section:"scaleup-detect",          x:71.5, y:89.5, w:6.5, h:3.5 },
+  { id:"yeswehack",      name:"YesWeHack",           section:"scaleup-detect",          x:77,   y:89.5, w:9,   h:3.5 },
+  { id:"qevlarai",       name:"Qevlar AI",           section:"scaleup-detect",          x:62,   y:94,   w:7.5, h:3.5 },
+  { id:"sesameit",       name:"Sesame it",           section:"scaleup-detect",          x:68,   y:94,   w:8.5, h:3.5 },
+  { id:"cybi_det",       name:"Cybi",                section:"scaleup-detect",          x:73.5, y:94,   w:5,   h:3.5 },
+  { id:"sekoia",         name:"sekoia",              section:"scaleup-detect",          x:77.5, y:94,   w:7,   h:3.5 },
+
+  // ── RESPOND ───────────────────────────────────────────────────────────────
+  { id:"tetris",         name:"TETRIS",              section:"scaleup-respond",         x:83.5, y:85,   w:7.5, h:4   },
+  { id:"crowdsec",       name:"CrowdSec",            section:"scaleup-respond",         x:82.5, y:90,   w:8.5, h:3.5 },
+  { id:"strangebee",     name:"StrangeBee",          section:"scaleup-respond",         x:82,   y:94,   w:9,   h:3.5 },
+  { id:"easylience",     name:"easylience",          section:"scaleup-respond",         x:82,   y:97.5, w:9,   h:2.5 },
+
+  // ── RECOVER ───────────────────────────────────────────────────────────────
+  { id:"oxibox",         name:"oxibox",              section:"scaleup-recover",         x:91,   y:90,   w:7.5, h:4   },
+
+  // ── UNICORN ───────────────────────────────────────────────────────────────
+  { id:"ledger",         name:"Ledger",              section:"unicorn",                 x:95.5, y:90,   w:5.5, h:4   },
+];
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  BUILD OVERLAYS
+// ══════════════════════════════════════════════════════════════════════════════
+const overlayLayer = document.getElementById('overlay-layer');
+
+LOGOS.forEach(logo => {
+  const sec = SECTIONS[logo.section];
+  const color = sec ? sec.color : '#ffffff';
+
+  const el = document.createElement('div');
+  el.className = 'lc';
+  el.dataset.id = logo.id;
+  el.dataset.section = logo.section;
+  el.style.cssText = `
+    left: ${logo.x}%;
+    top:  ${logo.y}%;
+    width:  ${logo.w}%;
+    height: ${logo.h}%;
+    --c: ${color};
+  `;
+  el.title = logo.name;
+
+  el.addEventListener('click', e => { e.stopPropagation(); openPopup(logo); });
+  overlayLayer.appendChild(el);
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  POPUP
+// ══════════════════════════════════════════════════════════════════════════════
+const popBg    = document.getElementById('pop-bg');
+const popName  = document.getElementById('pop-name');
+const popBadge = document.getElementById('pop-badge');
+const popBody  = document.getElementById('pop-body');
+
+function openPopup(logo) {
+  const sec   = SECTIONS[logo.section] || { label: logo.section, color: '#fff' };
+  const color = sec.color;
+
+  popBadge.textContent  = sec.label;
+  popBadge.style.cssText = `
+    background: ${color}22;
+    color: ${color};
+    border: 1px solid ${color}44;
+  `;
+
+  popName.textContent = logo.name;
+
+  if (logo.content) {
+    popBody.innerHTML = logo.content;
+    popBody.classList.remove('ph');
+  } else {
+    popBody.textContent = 'Data coming soon…';
+    popBody.classList.add('ph');
+  }
+
+  popBg.classList.add('on');
+}
+
+function closePopup() { popBg.classList.remove('on'); }
+
+document.getElementById('pop-close').addEventListener('click', closePopup);
+popBg.addEventListener('click', e => { if (e.target === popBg) closePopup(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closePopup(); });
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  LEGEND
+// ══════════════════════════════════════════════════════════════════════════════
+const legendEl = document.getElementById('legend');
+// Deduplicate section labels shown in legend (skip "scaleup-*" variants)
+const legendSections = [
+  'watermarking','artificial-intelligence','iot-security',
+  'vulnerabilities','attack-surface','anti-fraud',
+  'endpoints','awareness','privacy','governance',
+  'secure-data','threat-intelligence','cyber-range','crisis-management',
+  'data-security','cloud-security','application-security',
+  'identity-access','network-security','surveillance','incident-response',
+  'scaleup-govern','scaleup-identify','scaleup-protect',
+  'scaleup-detect','scaleup-respond','scaleup-recover','unicorn'
+];
+legendSections.forEach(key => {
+  const sec = SECTIONS[key];
+  if (!sec) return;
+  const item = document.createElement('div');
+  item.className = 'leg-item';
+  item.innerHTML = `<span class="leg-dot" style="background:${sec.color}"></span>${sec.label}`;
+  legendEl.appendChild(item);
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  DEV MODE  (Ctrl+D)
+//  Shows real-time percentage coordinates — helps you fine-tune logo positions
+// ══════════════════════════════════════════════════════════════════════════════
+let devMode = false;
+const devBar   = document.getElementById('dev-bar');
+const devCoord = document.getElementById('dev-coord');
+const radarImg = document.getElementById('radar-img');
+
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey && e.key.toLowerCase() === 'd') {
+    e.preventDefault();
+    devMode = !devMode;
+    devBar.classList.toggle('on', devMode);
+    overlayLayer.style.outline = devMode ? '1px dashed rgba(255,80,0,.3)' : '';
+    // In dev mode, tint every chip slightly so outlines are visible
+    document.querySelectorAll('.lc').forEach(el => {
+      el.style.border = devMode
+        ? `1px dashed ${el.style.getPropertyValue('--c')}88`
+        : '1.5px solid transparent';
+    });
+  }
+});
+
+document.getElementById('radar-wrap').addEventListener('mousemove', e => {
+  if (!devMode) return;
+  const r  = radarImg.getBoundingClientRect();
+  const xp = ((e.clientX - r.left)  / r.width  * 100).toFixed(1);
+  const yp = ((e.clientY - r.top)   / r.height * 100).toFixed(1);
+  devCoord.textContent = `x: ${xp}%  y: ${yp}%`;
+});
+
+// Click in dev mode logs the logo data snippet to console
+document.getElementById('radar-wrap').addEventListener('click', e => {
+  if (!devMode) return;
+  const r  = radarImg.getBoundingClientRect();
+  const xp = ((e.clientX - r.left)  / r.width  * 100).toFixed(1);
+  const yp = ((e.clientY - r.top)   / r.height * 100).toFixed(1);
+  console.log(`{ id:"", name:"", section:"", x:${xp}, y:${yp}, w:8, h:3.5 },`);
+});
+</script>
+</body>
+</html>
