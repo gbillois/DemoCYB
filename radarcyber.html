@@ -52,6 +52,12 @@
       inset: 0;
       pointer-events: none; /* individual chips set their own */
     }
+    /* Calque dédié aux étiquettes en dev-mode (hors clip-path) */
+    #tag-layer {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
 
     /* ── Logo chip ── */
     .lc {
@@ -59,15 +65,22 @@
       pointer-events: all;
       cursor: pointer;
       border-radius: 3px;
-      border: 1.5px solid transparent;
       background: transparent;
-      transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+      transition: box-shadow .15s ease, background .15s ease;
     }
 
+    /* Shape presets (clip-path rogne le rendu ET le hit-testing) */
+    .lc[data-shape="rect"],
+    .lc[data-shape="square"]  { clip-path: none; }
+    .lc[data-shape="circle"],
+    .lc[data-shape="ellipse"] { clip-path: ellipse(50% 50% at 50% 50%); }
+    .lc[data-shape="diamond"] { clip-path: polygon(50% 0,100% 50%,50% 100%,0 50%); }
+    .lc[data-shape="hex"]     { clip-path: polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%); }
+    .lc[data-shape="triangle"]{ clip-path: polygon(50% 0,100% 100%,0 100%); }
+
     .lc:hover {
-      border-color: var(--c);
       background: color-mix(in srgb, var(--c) 12%, transparent);
-      box-shadow: 0 0 0 1px color-mix(in srgb, var(--c) 40%, transparent),
+      box-shadow: inset 0 0 0 1.5px var(--c),
                   0 0 10px color-mix(in srgb, var(--c) 45%, transparent);
       z-index: 50;
     }
@@ -168,6 +181,63 @@
       font-size: 11px;
       font-family: monospace;
     }
+    #dev-help {
+      background: rgba(0,0,0,.85);
+      color: #ccd;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 10.5px;
+      font-family: monospace;
+      max-width: 320px;
+      line-height: 1.5;
+      text-align: left;
+    }
+    #dev-help b { color: #ffb86c; }
+    #dev-help kbd {
+      background: #222; color: #fff;
+      padding: 1px 5px; border-radius: 3px;
+      font-size: 10px; border: 1px solid #444;
+    }
+
+    /* Dev-mode visuals on chips */
+    .lc.dev {
+      background: color-mix(in srgb, var(--c) 8%, transparent);
+      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 70%, transparent);
+    }
+    /* Tags des chips : sur un calque séparé pour ne pas être rognés par clip-path */
+    .lc-tag {
+      display: none;
+      position: absolute;
+      font: 600 9px/1 monospace;
+      background: rgba(0,0,0,.85);
+      color: #ffb86c;
+      padding: 2px 5px;
+      border-radius: 3px;
+      pointer-events: none;
+      white-space: nowrap;
+      z-index: 60;
+      transform: translateY(-100%);
+    }
+    body.devmode .lc-tag { display: block; }
+
+    /* Toast feedback (changement de forme) */
+    #dev-toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,.92);
+      color: #fff;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font: 600 13px/1.2 monospace;
+      box-shadow: 0 8px 30px rgba(0,0,0,.6);
+      z-index: 2000;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity .15s ease, transform .15s ease;
+    }
+    #dev-toast.on { opacity: 1; transform: translateX(-50%) translateY(-4px); }
 
     /* ── Legend ── */
     #legend {
@@ -200,6 +270,7 @@
 <div id="radar-wrap">
   <img id="radar-img" src="radarcyber.png" alt="Radar Cybersécurité 2025" />
   <div id="overlay-layer"></div>
+  <div id="tag-layer"></div>
 </div>
 
 <div id="legend"></div>
@@ -216,9 +287,26 @@
 
 <!-- Dev mode -->
 <div id="dev-bar">
-  <div id="dev-label">DEV MODE · Ctrl+D to toggle</div>
+  <div id="dev-label">DEV MODE · Ctrl+D pour basculer</div>
   <div id="dev-coord">x: 0%, y: 0%</div>
+  <div id="dev-help">
+    <b>Retouches&nbsp;:</b><br>
+    • <kbd>Clic</kbd> sur un chip → cycle la forme (rect → circle → diamond → hex → triangle)<br>
+    • <kbd>Alt+Clic</kbd> → réinitialise la forme<br>
+    • <kbd>Maj+Clic</kbd> → log l'entrée modifiée en console<br>
+    <b>Partage :</b><br>
+    • <kbd>E</kbd> → exporter le JSON complet (.json)<br>
+    • <kbd>C</kbd> → copier le JSON dans le presse-papier<br>
+    • <kbd>I</kbd> → importer un JSON (fichier)<br>
+    • <kbd>R</kbd> → reset (recharge la version initiale)
+  </div>
 </div>
+
+<!-- Toast feedback -->
+<div id="dev-toast"></div>
+
+<!-- File picker caché pour import JSON -->
+<input id="dev-import" type="file" accept="application/json,.json" style="display:none">
 
 <script>
 // ══════════════════════════════════════════════════════════════════════════════
@@ -310,11 +398,12 @@ const LOGOS = [
   { id:"dreamon",        name:"Dream On Technology", section:"crisis-management",       x:16,   y:73.5, w:13,  h:4   },
 
   // ── IOT SECURITY (top-center bubble) ─────────────────────────────────────
-  { id:"seckiot",        name:"SECKIOT",             section:"iot-security",            x:43.5, y:2,    w:8,   h:4.5 },
-  { id:"aiotrust",       name:"AIoTRUST",            section:"iot-security",            x:48.5, y:5.5,  w:8.5, h:4.5 },
-  { id:"aphelio",        name:"APHELIO",             section:"iot-security",            x:42.5, y:10.5, w:8,   h:4.5 },
-  { id:"parcodr",        name:"PARCODR",             section:"iot-security",            x:50.5, y:10.5, w:8,   h:4.5 },
-  { id:"seedfence",      name:"SeedFence",           section:"iot-security",            x:43.5, y:15.5, w:9.5, h:4.5 },
+  // Démo : logos en cercle dans la bulle IoT Security
+  { id:"seckiot",        name:"SECKIOT",             section:"iot-security",            x:43.5, y:2,    w:8,   h:4.5, shape:"circle" },
+  { id:"aiotrust",       name:"AIoTRUST",            section:"iot-security",            x:48.5, y:5.5,  w:8.5, h:4.5, shape:"circle" },
+  { id:"aphelio",        name:"APHELIO",             section:"iot-security",            x:42.5, y:10.5, w:8,   h:4.5, shape:"circle" },
+  { id:"parcodr",        name:"PARCODR",             section:"iot-security",            x:50.5, y:10.5, w:8,   h:4.5, shape:"circle" },
+  { id:"seedfence",      name:"SeedFence",           section:"iot-security",            x:43.5, y:15.5, w:9.5, h:4.5, shape:"hex" },
 
   // ── VULNERABILITIES (top-right bubble) ───────────────────────────────────
   { id:"cybi_vuln",      name:"Cybi",                section:"vulnerabilities",         x:62,   y:3.5,  w:5,   h:4   },
@@ -525,10 +614,39 @@ const LOGOS = [
 
 // ══════════════════════════════════════════════════════════════════════════════
 //  BUILD OVERLAYS
+//  Chaque logo a un chip (.lc) cliquable + une étiquette (.lc-tag) montrée
+//  uniquement en dev-mode (sur un calque séparé pour éviter le clip-path).
 // ══════════════════════════════════════════════════════════════════════════════
 const overlayLayer = document.getElementById('overlay-layer');
+const tagLayer     = document.getElementById('tag-layer');
 
-LOGOS.forEach(logo => {
+// Sauvegarde de l'état initial pour le reset
+const INITIAL_LOGOS = JSON.parse(JSON.stringify(LOGOS));
+
+// Map id → { logo, chip, tag } pour pouvoir réappliquer les changements
+const chipsById = new Map();
+
+// Formes presets cyclables au clic en dev-mode
+const SHAPE_CYCLE = [undefined, 'circle', 'diamond', 'hex', 'triangle'];
+const shapeLabel  = s => s || 'rect';
+
+function applyShape(el, shape) {
+  // Reset
+  el.style.clipPath = '';
+  if (!shape) {
+    delete el.dataset.shape;
+    return;
+  }
+  if (shape.startsWith('polygon(') || shape.startsWith('path(') || shape.startsWith('ellipse(') || shape.startsWith('circle(')) {
+    // Forme custom : clip-path inline (data-shape="custom" pour l'affichage)
+    el.dataset.shape = 'custom';
+    el.style.clipPath = shape;
+  } else {
+    el.dataset.shape = shape;
+  }
+}
+
+function buildChip(logo) {
   const sec = SECTIONS[logo.section];
   const color = sec ? sec.color : '#ffffff';
 
@@ -544,10 +662,31 @@ LOGOS.forEach(logo => {
     --c: ${color};
   `;
   el.title = logo.name;
+  applyShape(el, logo.shape);
 
-  el.addEventListener('click', e => { e.stopPropagation(); openPopup(logo); });
+  el.addEventListener('click', e => {
+    e.stopPropagation();
+    if (devMode) return; // en dev-mode, le clic gère le cyclage de forme (cf. plus bas)
+    openPopup(logo);
+  });
   overlayLayer.appendChild(el);
-});
+
+  // Étiquette sur le calque hors clip-path
+  const tag = document.createElement('div');
+  tag.className = 'lc-tag';
+  tag.style.cssText = `left:${logo.x}%; top:${logo.y}%;`;
+  tag.textContent = `${logo.id}·${shapeLabel(logo.shape)}`;
+  tagLayer.appendChild(tag);
+
+  chipsById.set(logo.id, { logo, chip: el, tag });
+}
+
+LOGOS.forEach(buildChip);
+
+function refreshTag(logo) {
+  const ref = chipsById.get(logo.id);
+  if (ref) ref.tag.textContent = `${logo.id}·${shapeLabel(logo.shape)}`;
+}
 
 // ══════════════════════════════════════════════════════════════════════════════
 //  POPUP
@@ -613,28 +752,59 @@ legendSections.forEach(key => {
 
 // ══════════════════════════════════════════════════════════════════════════════
 //  DEV MODE  (Ctrl+D)
-//  Shows real-time percentage coordinates — helps you fine-tune logo positions
+//  Mise au point collaborative des formes cliquables.
+//
+//  Raccourcis (dans le dev-mode) :
+//    Clic sur un chip       → cycle la forme (rect → circle → diamond → hex → triangle)
+//    Alt+Clic               → réinitialise la forme (rect)
+//    Maj+Clic               → log l'entrée modifiée en console
+//    E                      → export du LOGOS courant en fichier .json
+//    C                      → copie du JSON dans le presse-papier
+//    I                      → import d'un fichier .json (fusionne par `id`)
+//    R                      → reset complet (recharge la version initiale)
 // ══════════════════════════════════════════════════════════════════════════════
 let devMode = false;
-const devBar   = document.getElementById('dev-bar');
-const devCoord = document.getElementById('dev-coord');
-const radarImg = document.getElementById('radar-img');
+const devBar    = document.getElementById('dev-bar');
+const devCoord  = document.getElementById('dev-coord');
+const radarImg  = document.getElementById('radar-img');
+const toast     = document.getElementById('dev-toast');
+const fileInput = document.getElementById('dev-import');
+
+let toastTimer = null;
+function showToast(msg, ms = 1600) {
+  toast.textContent = msg;
+  toast.classList.add('on');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('on'), ms);
+}
+
+function setDevMode(on) {
+  devMode = on;
+  devBar.classList.toggle('on', devMode);
+  document.body.classList.toggle('devmode', devMode);
+  overlayLayer.style.outline = devMode ? '1px dashed rgba(255,80,0,.3)' : '';
+  document.querySelectorAll('.lc').forEach(el => {
+    el.classList.toggle('dev', devMode);
+  });
+}
 
 document.addEventListener('keydown', e => {
   if (e.ctrlKey && e.key.toLowerCase() === 'd') {
     e.preventDefault();
-    devMode = !devMode;
-    devBar.classList.toggle('on', devMode);
-    overlayLayer.style.outline = devMode ? '1px dashed rgba(255,80,0,.3)' : '';
-    // In dev mode, tint every chip slightly so outlines are visible
-    document.querySelectorAll('.lc').forEach(el => {
-      el.style.border = devMode
-        ? `1px dashed ${el.style.getPropertyValue('--c')}88`
-        : '1.5px solid transparent';
-    });
+    setDevMode(!devMode);
+    return;
   }
+  if (!devMode) return;
+  // Ignore si l'utilisateur est en train de saisir
+  if (e.target.matches('input, textarea')) return;
+  const k = e.key.toLowerCase();
+  if (k === 'e') { e.preventDefault(); exportJSON(); }
+  else if (k === 'c') { e.preventDefault(); copyJSON(); }
+  else if (k === 'i') { e.preventDefault(); fileInput.click(); }
+  else if (k === 'r') { e.preventDefault(); resetLogos(); }
 });
 
+// Coords en temps réel
 document.getElementById('radar-wrap').addEventListener('mousemove', e => {
   if (!devMode) return;
   const r  = radarImg.getBoundingClientRect();
@@ -643,14 +813,145 @@ document.getElementById('radar-wrap').addEventListener('mousemove', e => {
   devCoord.textContent = `x: ${xp}%  y: ${yp}%`;
 });
 
-// Click in dev mode logs the logo data snippet to console
+// ── Cyclage de forme au clic sur un chip en dev-mode ──────────────────────────
+overlayLayer.addEventListener('click', e => {
+  if (!devMode) return;
+  const chip = e.target.closest('.lc');
+  if (!chip) return;
+  e.stopPropagation();
+  e.preventDefault();
+
+  const id  = chip.dataset.id;
+  const ref = chipsById.get(id);
+  if (!ref) return;
+  const logo = ref.logo;
+
+  if (e.altKey) {
+    // Reset forme
+    delete logo.shape;
+    applyShape(chip, undefined);
+    refreshTag(logo);
+    showToast(`${id} → rect (reset)`);
+    return;
+  }
+  if (e.shiftKey) {
+    // Log entrée modifiée
+    console.log(JSON.stringify(logo));
+    showToast(`${id} loggé en console`);
+    return;
+  }
+  // Cycle
+  const cur = logo.shape;
+  const idx = SHAPE_CYCLE.indexOf(cur);
+  const next = SHAPE_CYCLE[(idx + 1 + SHAPE_CYCLE.length) % SHAPE_CYCLE.length];
+  if (next) logo.shape = next; else delete logo.shape;
+  applyShape(chip, next);
+  refreshTag(logo);
+  showToast(`${id} → ${shapeLabel(next)}`);
+});
+
+// Clic sur le radar (hors chip) : log les coords pour ajouter un nouvel item
 document.getElementById('radar-wrap').addEventListener('click', e => {
   if (!devMode) return;
+  if (e.target.closest('.lc')) return;
   const r  = radarImg.getBoundingClientRect();
   const xp = ((e.clientX - r.left)  / r.width  * 100).toFixed(1);
   const yp = ((e.clientY - r.top)   / r.height * 100).toFixed(1);
-  console.log(`{ id:"", name:"", section:"", x:${xp}, y:${yp}, w:8, h:3.5 },`);
+  const snippet = `{ id:"", name:"", section:"", x:${xp}, y:${yp}, w:8, h:3.5 },`;
+  console.log(snippet);
+  showToast(`Coords loggées : x:${xp} y:${yp}`);
 });
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  IMPORT / EXPORT (collaboration)
+//  Format : { version: 1, logos: [ {id, ..., shape?}, ... ] }
+//  L'import fusionne par `id` — seuls les champs présents dans le fichier
+//  écrasent l'existant. Les nouvelles entrées (id inconnu) sont ajoutées.
+// ══════════════════════════════════════════════════════════════════════════════
+function serializeLogos() {
+  return JSON.stringify({ version: 1, logos: LOGOS }, null, 2);
+}
+
+function downloadBlob(content, filename) {
+  const blob = new Blob([content], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 100);
+}
+
+function exportJSON() {
+  const stamp = new Date().toISOString().replace(/[:T]/g, '-').slice(0, 16);
+  downloadBlob(serializeLogos(), `radarcyber-logos-${stamp}.json`);
+  showToast(`Export JSON · ${LOGOS.length} logos`);
+}
+
+async function copyJSON() {
+  try {
+    await navigator.clipboard.writeText(serializeLogos());
+    showToast(`JSON copié (${LOGOS.length} logos)`);
+  } catch (err) {
+    console.error(err);
+    showToast(`Échec copie — voir console`);
+  }
+}
+
+function applyLogosUpdate(incoming) {
+  // `incoming` : tableau d'objets logo. Fusion par id.
+  const byId = new Map(LOGOS.map(l => [l.id, l]));
+  let added = 0, updated = 0;
+  for (const item of incoming) {
+    if (!item || !item.id) continue;
+    if (byId.has(item.id)) {
+      Object.assign(byId.get(item.id), item);
+      updated++;
+    } else {
+      LOGOS.push(item);
+      added++;
+    }
+  }
+  rebuildAll();
+  showToast(`Import OK · ${updated} màj, ${added} ajout(s)`);
+}
+
+fileInput.addEventListener('change', e => {
+  const f = e.target.files && e.target.files[0];
+  if (!f) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      const logos = Array.isArray(data) ? data : data.logos;
+      if (!Array.isArray(logos)) throw new Error('Format invalide (attendu: tableau ou {logos:[...]})');
+      applyLogosUpdate(logos);
+    } catch (err) {
+      console.error(err);
+      showToast(`Import échoué : ${err.message}`);
+    } finally {
+      fileInput.value = '';
+    }
+  };
+  reader.readAsText(f);
+});
+
+function resetLogos() {
+  if (!confirm('Reset : recharger la version initiale ? Les retouches non exportées seront perdues.')) return;
+  LOGOS.length = 0;
+  JSON.parse(JSON.stringify(INITIAL_LOGOS)).forEach(l => LOGOS.push(l));
+  rebuildAll();
+  showToast(`Reset · ${LOGOS.length} logos`);
+}
+
+function rebuildAll() {
+  overlayLayer.innerHTML = '';
+  tagLayer.innerHTML = '';
+  chipsById.clear();
+  LOGOS.forEach(buildChip);
+  if (devMode) {
+    document.querySelectorAll('.lc').forEach(el => el.classList.add('dev'));
+  }
+}
 </script>
 </body>
 </html>
