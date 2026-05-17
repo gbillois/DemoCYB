@@ -179,6 +179,10 @@
       box-shadow: 0 0 34px rgba(0, 245, 255, 0.22), inset 0 0 26px rgba(255, 43, 214, 0.12);
     }
 
+    .menu-card {
+      width: min(100%, 700px);
+    }
+
     .card h2,
     .quiz h2 {
       margin: 0 0 10px;
@@ -213,15 +217,15 @@
     .mode-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 16px;
-      margin-top: 20px;
+      gap: 14px;
+      margin-top: 18px;
     }
 
     .mode-card {
       display: grid;
-      gap: 10px;
-      min-height: 190px;
-      padding: 18px;
+      gap: 8px;
+      min-height: 132px;
+      padding: 16px;
       border: 1px solid rgba(0, 245, 255, 0.35);
       border-radius: 18px;
       color: #eaffff;
@@ -313,14 +317,57 @@
     }
 
     @media (max-width: 720px) {
-      body { overflow: auto; padding: 12px 12px 112px; }
-      .shell { padding: 14px; }
-      header { align-items: flex-start; flex-direction: column; }
-      .hud { justify-content: flex-start; }
-      .chip { padding: 8px 10px; }
-      .mode-grid { grid-template-columns: 1fr; }
+      body {
+        min-height: 100svh;
+        overflow: hidden;
+        padding: 10px;
+      }
+      .shell {
+        width: min(100%, 680px);
+        max-height: calc(100svh - 20px);
+        padding: 12px;
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr) auto;
+      }
+      header {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+      h1 { font-size: clamp(1.45rem, 8vw, 2.35rem); }
+      .hud { justify-content: flex-start; gap: 8px; }
+      .chip { padding: 7px 9px; font-size: 0.72rem; }
+      .overlay,
+      .quiz { padding: 12px; }
+      .card { padding: 18px; }
+      .menu-card { padding: 16px; }
+      .menu-card p { display: none; }
+      .mode-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+        margin-top: 14px;
+      }
+      .mode-card {
+        min-height: 0;
+        gap: 6px;
+        padding: 13px;
+      }
+      .mode-card span {
+        font-size: 0.82rem;
+        line-height: 1.25;
+      }
+      .mode-card button {
+        width: 100%;
+        margin-top: 4px;
+        padding: 12px 18px;
+      }
+      .controls {
+        margin-top: 10px;
+        font-size: 0.72rem;
+      }
       .touch-pad.visible { display: grid; }
-      canvas { max-height: 62vh; }
+      canvas { max-height: 54svh; }
     }
   </style>
 </head>
@@ -340,18 +387,18 @@
       <canvas id="game" width="960" height="540" aria-label="Zone de jeu"></canvas>
 
       <div class="overlay" id="menuOverlay">
-        <div class="card">
-          <h2>Choisis ta mission</h2>
-          <p>Sélectionne le casse-brique cyberpunk classique ou lance Snake Cyber, un serpent mobile-first qui avale des concepts de cybersécurité puis te challenge avec un quiz.</p>
+        <div class="card menu-card">
+          <h2>Choisis un jeu</h2>
+          <p>Deux modes, deux boutons. Pas de texte à faire défiler : lance directement ta partie.</p>
           <div class="mode-grid">
             <article class="mode-card">
               <strong>Casse-brique</strong>
-              <span>Détruis les pare-feux néon avec ta balle plasma, attrape les bonus et passe les niveaux.</span>
+              <span>Balle plasma, briques néon, bonus.</span>
               <button data-mode="brick">Jouer</button>
             </article>
             <article class="mode-card">
               <strong>Snake Cyber</strong>
-              <span>Mange des mots liés au ransomware, ISO 27001, cloud security et AI security. Une bonne réponse te fait grandir, une erreur te rétrécit.</span>
+              <span>Serpent mobile-first + quiz cybersécurité.</span>
               <button data-mode="snake">Jouer</button>
             </article>
           </div>
