@@ -1,0 +1,15 @@
+Code modele : RELANCE_SIGNATAIRE
+
+Objet : Relance signature Docusign - facture en attente
+
+Corps :
+Bonjour,
+
+Une facture est en attente de votre signature dans Docusign. Merci de
+bien vouloir la traiter.
+
+Cordialement,
+
+---
+Note : la version utilisee par l'outil est celle de la feuille
+"Modeles Emails" du classeur. Ce fichier est une copie de reference.

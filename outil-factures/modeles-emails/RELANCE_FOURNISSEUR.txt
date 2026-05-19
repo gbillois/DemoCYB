@@ -1,0 +1,15 @@
+Code modele : RELANCE_FOURNISSEUR
+
+Objet : Relance - pieces manquantes pour votre referencement
+
+Corps :
+Bonjour,
+
+Nous n'avons pas encore recu l'ensemble des pieces necessaires a votre
+referencement. Merci de nous les transmettre dans les meilleurs delais.
+
+Cordialement,
+
+---
+Note : la version utilisee par l'outil est celle de la feuille
+"Modeles Emails" du classeur. Ce fichier est une copie de reference.

@@ -1,0 +1,24 @@
+Code modele : DEMANDE_INFOS_FOURNISSEUR
+
+Objet : Creation de compte fournisseur - pieces a fournir
+
+Corps :
+Bonjour,
+
+Afin de vous referencer comme fournisseur, merci de nous retourner par
+retour de mail :
+- un extrait Kbis de moins de 3 mois ;
+- un RIB signe par une personne figurant sur le Kbis ;
+- une copie de la carte d'identite de cette personne ;
+- vos disponibilites pour un appel de verification (callback).
+
+Un document Annexe 7 vous sera ensuite transmis pour signature
+electronique.
+
+Cordialement,
+
+---
+Note : la version utilisee par l'outil est celle de la feuille
+"Modeles Emails" du classeur. Ce fichier est une copie de reference,
+pratique pour relire ou modifier le texte avant de le recopier dans la
+feuille.
